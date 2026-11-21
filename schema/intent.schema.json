@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intent.schema.json",
+  "title": "Intent：一句话生成的意图输出（技术文档第四节步骤①）",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["members", "must", "prefs", "questions", "unsupported"],
+  "properties": {
+    "city": { "type": ["string", "null"] },
+    "city_adcode": { "type": ["string", "null"] },
+    "date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "date_fuzzy": { "type": ["string", "null"], "description": "如“本周六”，能解析成具体日期时填 date" },
+    "origin": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "properties": { "text": { "type": "string" }, "resolved": { "type": "boolean", "default": false } }
+    },
+    "return_by": { "type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$" },
+    "return_by_fuzzy": { "type": ["string", "null"] },
+    "members": { "type": "array", "items": { "type": "string" }, "maxItems": 6 },
+    "budget_yuan": { "type": ["number", "null"] },
+    "budget_tendency": { "enum": ["cheap", "normal", "loose", null] },
+    "must": { "type": "array", "items": { "$ref": "#/$defs/activity" } },
+    "prefs": { "type": "array", "items": { "$ref": "#/$defs/pref" } },
+    "questions": { "type": "array", "items": { "type": "string" }, "description": "缺关键信息时的追问，如“几点要回到家？”" },
+    "unsupported": { "type": "array", "items": { "type": "string" }, "description": "超出 P0 的需求：跨城、多天、超过 6 站等" }
+  },
+  "$defs": {
+    "activity": {
+      "type": "object", "required": ["text"], "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "category": { "enum": ["meal", "sight", "exhibit", "shop", "rest", "class", "other", null] },
+        "keyword": { "type": ["string", "null"] }
+      }
+    },
+    "pref": {
+      "type": "object", "required": ["text"], "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "category": { "enum": ["meal", "sight", "exhibit", "shop", "rest", "class", "other", null] },
+        "keyword": { "type": ["string", "null"] },
+        "constraint": { "enum": ["walk_total_km_max", "no_taxi", "no_walk", "budget_max", null] },
+        "value": { "type": ["number", "null"] }
+      }
+    }
+  }
+}

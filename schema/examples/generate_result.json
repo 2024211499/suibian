@@ -1,0 +1,97 @@
+{
+  "request": { "job_id": "job_demo" },
+  "response": {
+    "job_id": "job_demo",
+    "status": "done",
+    "done": true,
+    "elapsed_ms": 14200,
+    "partial": false,
+    "candidates": [
+      {
+        "option_id": "o1",
+        "style": "稳妥",
+        "plan": {
+          "plan_id": "p_g01", "version": 1, "scenario": "S3", "title": "西湖一日（稳妥）",
+          "date": "2026-12-05", "city_adcode": "330100", "status": "CANDIDATES", "autonomy": "L2",
+          "p_target": 0.9,
+          "members": [{"id": "m0", "alias": "我"}, {"id": "m1", "alias": "成员A"}],
+          "nodes": [
+            {"id": "n0", "kind": "origin", "name": "家", "src": {"tag": "user"}},
+            {"id": "n1", "kind": "stay", "category": "sight", "name": "西湖风景名胜区",
+             "poi_id": "B001900000", "loc": {"lng": 120.15, "lat": 30.24},
+             "window": {"earliest": "09:00", "latest": "12:30"},
+             "duration": {"mean_min": 120, "sd_min": 20}, "hard": false, "value": 3,
+             "members": ["m0", "m1"], "src": {"tag": "amap_poi"}},
+            {"id": "n2", "kind": "end", "category": "train", "name": "杭州东站（返程）",
+             "poi_id": "B0017000000", "loc": {"lng": 120.213, "lat": 30.291},
+             "window": {"earliest": "16:30", "latest": "18:00"},
+             "duration": {"mean_min": 0, "sd_min": 0}, "hard": true, "value": 5,
+             "members": ["m0", "m1"], "src": {"tag": "default"}}
+          ],
+          "edges": [
+            {"id": "e1", "from": "n0", "to": "n1", "mode": "taxi", "eta_min": 40,
+             "dist_m": 12000, "cost_yuan": 35, "src": {"tag": "amap_route"}},
+            {"id": "e2", "from": "n1", "to": "n2", "mode": "taxi", "eta_min": 30,
+             "dist_m": 9000, "cost_yuan": 28, "src": {"tag": "amap_route"}}
+          ],
+          "constraints": [],
+          "sim": null, "updated_at": null
+        },
+        "sim": {"p_all": 0.91, "n_samples": 2000, "seed": 20261205,
+                "per_node": [{"node": "n1", "p_ok": 1.0, "slack_p50": 90, "arrive_p90": 530.0},
+                              {"node": "n2", "p_ok": 0.91, "slack_p50": 310, "arrive_p90": 682.0}],
+                "weakest": {"node": "n2", "p_ok": 0.91}},
+        "cost": {"extra_min": 0, "extra_yuan": 263, "walk_m": 0, "transfers": 0,
+                  "wait_person_min": 0, "dropped_value": 0},
+        "explain_tpl": "三点都在同一路线上，{p_after}把握当天往返，人均约{yuan}元"
+      },
+      {
+        "option_id": "o2",
+        "style": "紧凑",
+        "plan": {
+          "plan_id": "p_g02", "version": 1, "scenario": "S3", "title": "西湖一日（紧凑）",
+          "date": "2026-12-05", "city_adcode": "330100", "status": "CANDIDATES", "autonomy": "L2",
+          "p_target": 0.9,
+          "members": [{"id": "m0", "alias": "我"}, {"id": "m1", "alias": "成员A"}],
+          "nodes": [
+            {"id": "n0", "kind": "origin", "name": "家", "src": {"tag": "user"}},
+            {"id": "n1", "kind": "stay", "category": "sight", "name": "西湖风景名胜区",
+             "poi_id": "B001900000", "loc": {"lng": 120.15, "lat": 30.24},
+             "window": {"earliest": "08:30", "latest": "11:30"},
+             "duration": {"mean_min": 120, "sd_min": 20}, "hard": false, "value": 3,
+             "members": ["m0", "m1"], "src": {"tag": "amap_poi"}},
+            {"id": "n2", "kind": "stay", "category": "meal", "name": "知味观（湖滨店）",
+             "poi_id": "B001900100", "loc": {"lng": 120.163, "lat": 30.248},
+             "window": {"earliest": "11:30", "latest": "13:00"},
+             "duration": {"mean_min": 60, "sd_min": 10}, "hard": false, "value": 2,
+             "members": ["m0", "m1"], "src": {"tag": "amap_poi"}},
+            {"id": "n3", "kind": "end", "category": "train", "name": "杭州东站（返程）",
+             "poi_id": "B0017000000", "loc": {"lng": 120.213, "lat": 30.291},
+             "window": {"earliest": "16:30", "latest": "19:40"},
+             "duration": {"mean_min": 0, "sd_min": 0}, "hard": true, "value": 5,
+             "members": ["m0", "m1"], "src": {"tag": "default"}}
+          ],
+          "edges": [
+            {"id": "e1", "from": "n0", "to": "n1", "mode": "taxi", "eta_min": 40,
+             "dist_m": 12000, "cost_yuan": 35, "src": {"tag": "amap_route"}},
+            {"id": "e2", "from": "n1", "to": "n2", "mode": "walk", "eta_min": 18,
+             "dist_m": 1300, "cost_yuan": 0, "src": {"tag": "amap_route"}},
+            {"id": "e3", "from": "n2", "to": "n3", "mode": "taxi", "eta_min": 28,
+             "dist_m": 8500, "cost_yuan": 26, "src": {"tag": "amap_route"}}
+          ],
+          "constraints": [],
+          "sim": null, "updated_at": null
+        },
+        "sim": {"p_all": 0.68, "n_samples": 2000, "seed": 20261205,
+                "per_node": [{"node": "n1", "p_ok": 1.0, "slack_p50": 60, "arrive_p90": 530.0},
+                              {"node": "n2", "p_ok": 0.95, "slack_p50": 12, "arrive_p90": 560.0},
+                              {"node": "n3", "p_ok": 0.68, "slack_p50": 175, "arrive_p90": 655.0}],
+                "weakest": {"node": "n3", "p_ok": 0.68}},
+        "cost": {"extra_min": -60, "extra_yuan": 301, "walk_m": 1300, "transfers": 0,
+                  "wait_person_min": 0, "dropped_value": 0},
+        "explain_tpl": "多排一站，{p_after}把握当天往返，人均约{yuan}元"
+      }
+    ],
+    "questions": []
+  }
+}

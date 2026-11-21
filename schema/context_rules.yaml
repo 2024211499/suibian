@@ -1,0 +1,26 @@
+# 情境修正规则表 —— 推演时对路段/活动的修正（技术文档 6.2）
+# 初值是团队经验值，界面如实标注"默认估计"；之后用自己采集的数据校准。
+# 只能人改；engine/context.py 加载本文件。
+
+version: 1
+
+peak_hours:                       # 高峰定义（技术文档 2.4）
+  - ["07:00", "09:30"]
+  - ["17:00", "19:30"]
+
+rules:
+  - when: {wx_hourly_precip_mm_gte: 2}       # 小时降水 ≥ 2mm
+    effects:
+      walk_factor: 1.15
+      bike_available: false
+      taxi_wait_add_min: 5
+
+  - when: {warning_type_contains: 暴雨}       # 和风预警
+    effects:
+      outdoor_value_divisor: 2               # 户外软活动价值减半（4.3）
+
+  - when: {peak: true}                        # 早晚高峰
+    effects:
+      taxi_wait_add_min: 3
+
+# 缺失说明：没命中的规则不生效；天气未获取时整体跳过并在依据面板写"天气未获取"（3.2 错误码）。

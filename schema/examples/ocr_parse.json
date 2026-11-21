@@ -1,0 +1,23 @@
+{
+  "request": {
+    "ocr_text": "订单详情 商品:电影票2张 时间:2026-12-06 19:30 影城:五道口影院 3号厅 订单号:2026120612345678",
+    "now": "2026-12-05T12:00:00+08:00"
+  },
+  "response": {
+    "order_fields": {
+      "type": "ticket",
+      "name": "五道口影院 3号厅",
+      "time": "2026-12-06 19:30",
+      "quantity": 2,
+      "order_no_masked": "<ORDER_1>"
+    },
+    "node_patch": {
+      "kind": "stay", "category": "other", "name": "五道口影院 3号厅",
+      "window": {"earliest": "19:15", "latest": "19:30"},
+      "duration": {"mean_min": 120, "sd_min": 15}, "hard": true, "value": 4,
+      "order": {"type": "ticket", "changeable_until": null, "change_fee": null, "deeplink": null},
+      "src": {"tag": "screenshot"}
+    },
+    "questions": ["影院在哪个城市？默认按当前城市找"]
+  }
+}

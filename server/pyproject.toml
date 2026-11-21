@@ -1,0 +1,48 @@
+[project]
+name = "suibian-server"
+version = "0.1.0"
+description = "随变服务端：推演引擎、生成流水线、外部服务网关"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "httpx>=0.28",
+    "numpy>=2.1",
+    "redis>=5.2",
+    "PyJWT[crypto]>=2.10",
+    "jsonschema>=4.23",
+    "openai>=1.60",
+    "sse-starlette>=2.2",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+    "hypothesis>=6.120",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 的 Body(...) 默认参数是框架惯例，不适用 bugbear B008
+"app/api/routes.py" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

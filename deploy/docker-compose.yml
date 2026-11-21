@@ -1,0 +1,68 @@
+# Docker Compose 部署 —— 技术文档 14.2。
+# 用法: cd deploy && cp .env.example .env（填好密钥）&& docker compose up -d
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    environment:
+      - MOCK=${MOCK:-0}
+      - QWEN_BASE=${QWEN_BASE}
+      - QWEN_KEY=${QWEN_KEY}
+      - QWEN_MAIN=${QWEN_MAIN}
+      - QWEN_LITE=${QWEN_LITE}
+      - DS_BASE=${DS_BASE}
+      - DS_KEY=${DS_KEY}
+      - DS_MAIN=${DS_MAIN}
+      - AMAP_WEB_KEY=${AMAP_WEB_KEY}
+      - QW_HOST=${QW_HOST}
+      - QW_PROJECT_ID=${QW_PROJECT_ID}
+      - QW_KEY_ID=${QW_KEY_ID}
+      - QW_PRIVATE_KEY=${QW_PRIVATE_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - DAILY_LLM_CALLS_MAX=${DAILY_LLM_CALLS_MAX:-3000}
+      - DAILY_SEARCH_MAX=${DAILY_SEARCH_MAX:-120}
+      - DAILY_GENERATE_MAX=${DAILY_GENERATE_MAX:-10}
+    depends_on:
+      - redis
+    # 只监听容器内网，由 Caddy 对外
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    # 不开外网端口
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    environment:
+      # Caddyfile 里的 {$DOMAIN} 依赖这个变量；缺失时 compose 直接报错而不是起一个证书申请不了的容器
+      - DOMAIN=${DOMAIN:?请在 deploy/.env 里设置 DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  # P1 聚会 H5 才需要（技术文档第十一节），启用时打开注释
+  # postgres:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: suibian
+  #     POSTGRES_USER: suibian
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+  # pg_data:

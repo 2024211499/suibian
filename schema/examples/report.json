@@ -1,0 +1,12 @@
+{
+  "request": {
+    "plan": { "plan_id": "p_demo02" },
+    "text": "小王说他堵车，晚 25 分钟",
+    "now": "2026-12-06T17:50:00+08:00",
+    "member": null
+  },
+  "response": {
+    "event": { "kind": "member_delay", "who": "同学A", "delay_min": 25, "raw_tag": "user_report" },
+    "plan_patch": {}
+  }
+}

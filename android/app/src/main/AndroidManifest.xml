@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 权限清单与技术文档 10.5 一致；10.5"不申请"清单里的敏感权限均未出现，
+         由 scripts/forbidden_scan.sh 在 CI 里核对 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- P1 定位时才启用（10.5）：
+         ACCESS_FINE_LOCATION / FOREGROUND_SERVICE / FOREGROUND_SERVICE_LOCATION -->
+
+    <!-- Android 11+ 包可见性：跳转高德、微信需要声明（技术文档 10.4） -->
+    <queries>
+        <package android:name="com.autonavi.minimap" />
+        <package android:name="com.tencent.mm" />
+    </queries>
+
+    <application
+        android:name=".SuibianApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Suibian"
+        android:usesCleartextTraffic="true">
+        <!-- TODO(W5 发布前): 移除 usesCleartextTraffic（Android 9+ 禁明文，正式域名走 HTTPS） -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 闹钟触发（出门提醒 / tick），显式 PendingIntent，不需要 intent-filter -->
+        <receiver android:name=".background.AlarmReceiver" android:exported="false" />
+
+        <!-- 开机 / 改时间 / 应用升级后恢复闹钟（10.3）；BOOT_COMPLETED 等是受保护广播 -->
+        <receiver android:name=".background.BootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

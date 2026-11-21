@@ -1,0 +1,68 @@
+{
+  "request": {
+    "plan": { "plan_id": "p_demo01" },
+    "profile": {},
+    "now": "2026-12-05T07:16:00+08:00",
+    "trigger": { "kind": "weather", "data": { "precip_from": "07:40", "mm": 2.5 } }
+  },
+  "response": {
+    "options": [
+      {
+        "option_id": "o1",
+        "ops": [{"op": "change_mode", "edge": "e1", "to": "walk"}],
+        "plan_after": {
+          "plan_id": "p_demo01", "version": 2, "scenario": "S1", "title": "明早赶课",
+          "date": "2026-12-05", "city_adcode": "330100", "status": "REPLANNING", "autonomy": "L2",
+          "p_target": 0.9,
+          "members": [{"id": "m0", "alias": "我"}],
+          "nodes": [
+            {"id": "n0", "kind": "origin", "name": "宿舍", "src": {"tag": "user"}},
+            {"id": "n1", "kind": "stay", "category": "class", "name": "三教",
+             "window": {"earliest": null, "latest": "08:00"},
+             "duration": {"mean_min": 45, "sd_min": 5}, "hard": true, "value": 5,
+             "members": ["m0"], "src": {"tag": "user"}}
+          ],
+          "edges": [
+            {"id": "e1", "from": "n0", "to": "n1", "mode": "walk", "eta_min": 27,
+             "dist_m": 2600, "cost_yuan": 0, "src": {"tag": "amap_route", "fetched_at": "2026-12-05T07:16:00+08:00"}}
+          ],
+          "constraints": [], "sim": null, "updated_at": "2026-12-05T07:16:00+08:00"
+        },
+        "sim": {"p_all": 0.91, "depart_by": "07:31"},
+        "cost": { "extra_min": -7, "extra_yuan": 0, "walk_m": 2600, "transfers": 0, "wait_person_min": 0, "dropped_value": 0 },
+        "score": 0.91,
+        "actions": [{"type": "alarm_set"}, {"type": "plan_update"}],
+        "explain_tpl": "雨变大了，骑车没法打伞，改步行后你{p_after}把握按时到，比原来{delta_min}出门"
+      },
+      {
+        "option_id": "o2",
+        "ops": [{"op": "change_mode", "edge": "e1", "to": "bus"}],
+        "plan_after": {
+          "plan_id": "p_demo01", "version": 2, "scenario": "S1", "title": "明早赶课",
+          "date": "2026-12-05", "city_adcode": "330100", "status": "REPLANNING", "autonomy": "L2",
+          "p_target": 0.9,
+          "members": [{"id": "m0", "alias": "我"}],
+          "nodes": [
+            {"id": "n0", "kind": "origin", "name": "宿舍", "src": {"tag": "user"}},
+            {"id": "n1", "kind": "stay", "category": "class", "name": "三教",
+             "window": {"earliest": null, "latest": "08:00"},
+             "duration": {"mean_min": 45, "sd_min": 5}, "hard": true, "value": 5,
+             "members": ["m0"], "src": {"tag": "user"}}
+          ],
+          "edges": [
+            {"id": "e1", "from": "n0", "to": "n1", "mode": "bus", "eta_min": 24,
+             "dist_m": 3100, "cost_yuan": 2, "wait_mean": 6,
+             "src": {"tag": "amap_route", "fetched_at": "2026-12-05T07:16:00+08:00"}}
+          ],
+          "constraints": [], "sim": null, "updated_at": "2026-12-05T07:16:00+08:00"
+        },
+        "sim": { "p_all": 0.88, "depart_by": "07:34" },
+        "cost": { "extra_min": -4, "extra_yuan": 2, "walk_m": 400, "transfers": 0, "wait_person_min": 0, "dropped_value": 0 },
+        "score": 0.88,
+        "actions": [{"type": "alarm_set"}, {"type": "plan_update"}],
+        "explain_tpl": "坐公交不用淋雨，你{p_after}把握按时到，比原来{delta_min}出门"
+      }
+    ],
+    "relax": null
+  }
+}

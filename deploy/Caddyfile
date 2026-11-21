@@ -1,0 +1,15 @@
+# Caddy 反代 + 自动 HTTPS —— 技术文档 14.2。
+# SSE 路径必须关缓冲（flush_interval -1），否则生成进度事件会被攒着一起发。
+
+{$DOMAIN} {
+    encode gzip
+
+    # 生成进度 SSE：逐条推，不缓冲
+    route /v1/generate/*/events {
+        reverse_proxy api:8000 {
+            flush_interval -1
+        }
+    }
+
+    reverse_proxy api:8000
+}

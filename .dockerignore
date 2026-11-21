@@ -1,0 +1,10 @@
+**
+!server/
+!server/pyproject.toml
+!server/app/
+!server/app/**
+!schema/
+!schema/**
+
+**/__pycache__/
+**/*.py[cod]

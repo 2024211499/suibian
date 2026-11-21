@@ -1,0 +1,38 @@
+# 类别默认值（技术文档 4.1）—— 用到时节点来源标 default，界面显示"默认估计，请确认"。
+# 只能人改。
+
+categories:
+  meal:
+    mean_min: 60
+    sd_min: 10
+    hours_default: ["11:00-14:00", "17:00-21:00"]
+    keyword_default: "餐厅"
+  sight:
+    mean_min: 90
+    sd_min: 20
+    hours_default: ["08:30-17:00"]
+    keyword_default: "景点"
+  exhibit:
+    mean_min: 90
+    sd_min: 20
+    hours_default: ["09:00-17:00"]
+    closed_weekday: 1          # 周一闭馆
+    keyword_default: "展览馆"
+  shop:
+    mean_min: 60
+    sd_min: 15
+    hours_default: ["10:00-22:00"]
+    keyword_default: "商圈"
+  rest:
+    mean_min: 30
+    sd_min: 10
+    hours_default: null        # 不限
+    keyword_default: "咖啡"
+  class:
+    hours_default: null        # 按课表，硬节点
+    keyword_default: null
+
+hub:
+  mean_min: 0                  # 交通槽本身不停留，时长由路段承担
+  sd_min: 0
+  keyword_default: null

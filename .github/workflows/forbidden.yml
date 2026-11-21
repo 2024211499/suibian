@@ -1,0 +1,14 @@
+name: forbidden
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 禁用接口扫描（技术文档 12.3）
+        run: bash scripts/forbidden_scan.sh

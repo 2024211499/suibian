@@ -1,0 +1,38 @@
+{
+  "request": {
+    "text": "明早8点三教上课，宿舍出发骑车",
+    "now": "2026-12-04T21:00:00+08:00",
+    "city_adcode": "330100"
+  },
+  "response": {
+    "intent": {
+      "city": null, "city_adcode": "330100", "date": "2026-12-05", "date_fuzzy": null,
+      "origin": {"text": "宿舍", "resolved": false},
+      "return_by": null, "return_by_fuzzy": null,
+      "members": ["我"], "budget_yuan": null, "budget_tendency": null,
+      "must": [{"text": "8 点在三教上课", "category": "class", "keyword": "三教"}],
+      "prefs": [{"text": "骑车", "constraint": null, "value": null}],
+      "questions": [], "unsupported": []
+    },
+    "draft_plan": {
+      "plan_id": "p_demo01", "version": 1, "scenario": "S1", "title": "明早赶课",
+      "date": "2026-12-05", "city_adcode": "330100", "status": "DRAFT", "autonomy": "L2",
+      "p_target": 0.9,
+      "members": [{"id": "m0", "alias": "我"}],
+      "nodes": [
+        {"id": "n0", "kind": "origin", "name": "宿舍", "src": {"tag": "user"}},
+        {"id": "n1", "kind": "stay", "category": "class", "name": "三教",
+         "window": {"earliest": null, "latest": "08:00"},
+         "duration": {"mean_min": 45, "sd_min": 5}, "hard": true, "value": 5,
+         "members": ["m0"], "src": {"tag": "llm_parsed"}}
+      ],
+      "edges": [
+        {"id": "e1", "from": "n0", "to": "n1", "mode": "bike", "eta_min": 15,
+         "dist_m": 2600, "cost_yuan": 0, "src": {"tag": "default"}}
+      ],
+      "constraints": [],
+      "sim": null, "updated_at": null
+    },
+    "questions": []
+  }
+}

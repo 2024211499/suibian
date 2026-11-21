@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "plan_graph.schema.json",
+  "title": "PlanGraph 计划图（技术文档 2.1）",
+  "type": "object",
+  "required": ["plan_id", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "plan_id": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1, "default": 1 },
+    "scenario": { "enum": ["S1", "S2", "S3", null] },
+    "title": { "type": ["string", "null"] },
+    "date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "city_adcode": { "type": ["string", "null"] },
+    "status": {
+      "enum": ["DRAFT", "GENERATING", "CANDIDATES", "DEPLOYED", "ACTIVE", "REPLANNING", "ENDED", "REVIEWED", "CANCELLED"],
+      "default": "DRAFT"
+    },
+    "autonomy": { "enum": ["L0", "L1", "L2", "L3"], "default": "L2" },
+    "p_target": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.9 },
+    "members": {
+      "type": "array", "maxItems": 6,
+      "items": {
+        "type": "object", "required": ["id", "alias"], "additionalProperties": false,
+        "properties": { "id": { "type": "string" }, "alias": { "type": "string" } }
+      }
+    },
+    "nodes": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "constraints": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/constraint" } },
+    "sim": { "type": ["object", "null"] },
+    "updated_at": { "type": ["string", "null"] }
+  },
+  "$defs": {
+    "loc": {
+      "type": "object", "required": ["lng", "lat"], "additionalProperties": false,
+      "properties": { "lng": { "type": "number" }, "lat": { "type": "number" } }
+    },
+    "window": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "earliest": { "type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$" },
+        "latest": { "type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$" }
+      }
+    },
+    "duration": {
+      "type": "object", "required": ["mean_min"], "additionalProperties": false,
+      "properties": { "mean_min": { "type": "number", "minimum": 0 }, "sd_min": { "type": "number", "minimum": 0, "default": 0 } }
+    },
+    "src": {
+      "type": "object", "required": ["tag"], "additionalProperties": false,
+      "properties": {
+        "tag": { "enum": ["user", "calendar", "screenshot", "amap_poi", "amap_route", "qweather", "llm_parsed", "profile", "default", "demo"] },
+        "fetched_at": { "type": ["string", "null"] }
+      }
+    },
+    "order": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "type": { "type": ["string", "null"], "description": "booking / ticket / reservation / null" },
+        "changeable_until": { "type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$" },
+        "change_fee": { "type": "number", "default": 0 },
+        "deeplink": { "type": ["string", "null"] }
+      }
+    },
+    "node": {
+      "type": "object", "required": ["id", "kind", "name"], "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["origin", "stay", "meet", "hub", "end"] },
+        "category": { "enum": ["class", "meal", "sight", "exhibit", "shop", "rest", "train", "flight", "other", null] },
+        "name": { "type": "string" },
+        "poi_id": { "type": ["string", "null"] },
+        "loc": { "$ref": "#/$defs/loc" },
+        "window": { "$ref": "#/$defs/window" },
+        "duration": { "$ref": "#/$defs/duration" },
+        "hard": { "type": "boolean", "default": false },
+        "value": { "type": "integer", "minimum": 1, "maximum": 5, "default": 2 },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "order": { "$ref": "#/$defs/order" },
+        "src": { "$ref": "#/$defs/src" }
+      }
+    },
+    "edge": {
+      "type": "object", "required": ["id", "from", "to", "mode", "eta_min"], "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "mode": { "enum": ["walk", "bike", "ebike", "bus", "taxi", "drive"] },
+        "eta_min": { "type": "number", "minimum": 0 },
+        "dist_m": { "type": ["number", "null"] },
+        "cost_yuan": { "type": ["number", "null"] },
+        "wait_mean": { "type": ["number", "null"], "description": "公交/打车等车时间均值（分钟），缺省用引擎默认" },
+        "sigma": { "type": ["number", "null"], "description": "覆盖该边默认 σ，主要给测试用" },
+        "src": { "$ref": "#/$defs/src" }
+      }
+    },
+    "constraint": {
+      "type": "object", "required": ["id", "type"], "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "enum": ["arrive_by", "budget_max", "walk_total_km_max", "after", "custom"] },
+        "node": { "type": ["string", "null"] },
+        "time": { "type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$" },
+        "yuan": { "type": ["number", "null"] },
+        "hard": { "type": "boolean", "default": false },
+        "value": { "type": "integer", "minimum": 1, "maximum": 5, "default": 2 }
+      }
+    }
+  }
+}

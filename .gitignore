@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+server/.env
+deploy/.env
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+
+# Android / Gradle
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Eval 产物（样本数据进仓库，报告产物不进）
+eval/reports/*.json
+!eval/reports/.gitkeep
+
+# 回放录制临时文件
+assets_tmp/

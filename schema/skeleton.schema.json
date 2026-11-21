@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skeleton.schema.json",
+  "title": "Skeleton：活动骨架（技术文档第四节步骤②）",
+  "description": "骨架只列活动类型和大致顺序，不出地名、不出时间（Schema 里没有这两种字段，结构上保证大模型编不了）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slots"],
+  "properties": {
+    "notes": { "type": ["string", "null"] },
+    "slots": {
+      "type": "array", "minItems": 2, "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["slot_id", "category", "hard", "value", "after"],
+        "additionalProperties": false,
+        "properties": {
+          "slot_id": { "type": "string" },
+          "category": { "enum": ["origin", "hub", "sight", "exhibit", "meal", "shop", "rest", "class", "end"] },
+          "keyword": { "type": ["string", "null"], "description": "空 = 用 generator/defaults.yaml 的类别默认词" },
+          "hard": { "type": "boolean" },
+          "value": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "after": { "type": "array", "items": { "type": "string" }, "description": "必须在哪些槽之后" },
+          "near": { "type": ["string", "null"], "description": "尽量靠近哪个槽（可选）" }
+        }
+      }
+    }
+  }
+}

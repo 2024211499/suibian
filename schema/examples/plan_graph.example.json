@@ -1,0 +1,28 @@
+{
+  "plan_id": "p_7f3a", "version": 3, "scenario": "S3",
+  "title": "杭州一日", "date": "2026-12-05", "city_adcode": "330100",
+  "status": "DEPLOYED", "autonomy": "L2", "p_target": 0.9,
+  "members": [{"id": "m0", "alias": "我"}, {"id": "m1", "alias": "成员A"}],
+  "nodes": [
+    {"id": "n0", "kind": "origin", "name": "家", "loc": {"lng": 120.21, "lat": 30.25},
+     "src": {"tag": "user"}},
+    {"id": "n2", "kind": "stay", "category": "meal", "name": "某本帮菜馆",
+     "poi_id": "B0FFG8XXXX", "loc": {"lng": 120.16, "lat": 30.26},
+     "window": {"earliest": "11:15", "latest": "11:45"},
+     "duration": {"mean_min": 60, "sd_min": 10},
+     "hard": false, "value": 3, "members": ["m0", "m1"],
+     "order": {"type": "booking", "changeable_until": "12:30", "change_fee": 0,
+               "deeplink": null},
+     "src": {"tag": "amap_poi", "fetched_at": "2026-12-04T21:03:00+08:00"}}
+  ],
+  "edges": [
+    {"id": "e1", "from": "n0", "to": "n2", "mode": "taxi",
+     "eta_min": 22, "dist_m": 8400, "cost_yuan": 31,
+     "src": {"tag": "amap_route", "fetched_at": "2026-12-05T10:41:00+08:00"}}
+  ],
+  "constraints": [
+    {"id": "c1", "type": "arrive_by", "node": "n2", "time": "11:45", "hard": true},
+    {"id": "c2", "type": "budget_max", "yuan": 300, "hard": false, "value": 2}
+  ],
+  "sim": null, "updated_at": "2026-12-05T10:41:05+08:00"
+}

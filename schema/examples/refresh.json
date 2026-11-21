@@ -1,0 +1,16 @@
+{
+  "request": {
+    "plan": { "plan_id": "p_demo01" },
+    "now": "2026-12-05T07:10:00+08:00"
+  },
+  "response": {
+    "plan_patch": {
+      "edges": [
+        {"id": "e1", "eta_min": 18, "dist_m": 2600,
+         "src": {"tag": "amap_route", "fetched_at": "2026-12-05T07:10:00+08:00"}}
+      ]
+    },
+    "changed": ["e1"],
+    "weather": {"source": "qweather_minutely", "precip_from": "07:40", "fetched_at": "2026-12-05T07:10:05+08:00"}
+  }
+}

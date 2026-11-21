@@ -1,0 +1,16 @@
+# 动作分级表 —— 全仓库唯一来源（技术文档 12.1）
+# 改动规则：只能人改；构建时由 Gradle 任务生成 Kotlin 的 ActionType 枚举；
+# 计划书里的动作分级表也由脚本从这份文件生成，保证前后一致。
+# tier: auto=自动 / one_tap=一键确认 / preview=预览后确认 / jump_only=只跳转（对应 v2 5.2）
+
+- {type: plan_update,      tier: auto,      undo: true}
+- {type: alarm_set,        tier: auto,      undo: true}
+- {type: calendar_write,   tier: one_tap,   undo: true,  grant: WRITE_CALENDAR}
+- {type: navigate,         tier: one_tap,   undo: false}
+- {type: taxi_open,        tier: one_tap,   undo: false}
+- {type: msg_draft_sms,    tier: preview,   undo: false}
+- {type: msg_draft_wechat, tier: preview,   undo: false}
+- {type: location_share,   tier: preview,   undo: true}   # P1
+- {type: h5_sync,          tier: preview,   undo: true}   # P1
+- {type: order_jump,       tier: jump_only, undo: false}
+- {type: dial,             tier: jump_only, undo: false}

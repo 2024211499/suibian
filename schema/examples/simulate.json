@@ -1,0 +1,43 @@
+{
+  "request": {
+    "plan": {
+      "plan_id": "p_demo01", "version": 1, "scenario": "S1", "title": "明早赶课",
+      "date": "2026-12-05", "city_adcode": "330100", "status": "DRAFT", "autonomy": "L2",
+      "p_target": 0.9,
+      "members": [{"id": "m0", "alias": "我"}],
+      "nodes": [
+        {"id": "n0", "kind": "origin", "name": "宿舍", "src": {"tag": "user"}},
+        {"id": "n1", "kind": "stay", "category": "class", "name": "三教",
+         "window": {"earliest": null, "latest": "08:00"},
+         "duration": {"mean_min": 45, "sd_min": 5}, "hard": true, "value": 5,
+         "members": ["m0"], "src": {"tag": "user"}}
+      ],
+      "edges": [
+        {"id": "e1", "from": "n0", "to": "n1", "mode": "bike", "eta_min": 15,
+         "dist_m": 2600, "cost_yuan": 0, "src": {"tag": "amap_route"}}
+      ],
+      "constraints": [], "sim": null, "updated_at": null
+    },
+    "profile": {
+      "version": 0, "learning_paused": false,
+      "time_factors": {}, "fixed_min": {}, "weights": {}
+    },
+    "now": "2026-12-04T21:00:00+08:00",
+    "seed": 20261205
+  },
+  "response": {
+    "sim": {
+      "p_all": 0.92, "p_target": 0.9, "n_samples": 2000, "seed": 20261205,
+      "per_node": [{"node": "n1", "p_ok": 0.92, "slack_p50": 10, "arrive_p90": "07:52"}],
+      "weakest": {"node": "n1", "p_ok": 0.92},
+      "depart_by": "07:38", "depart_src": ["amap_route", "profile"],
+      "computed_at": "2026-12-04T21:00:05+08:00", "inputs_age_s": 0
+    },
+    "evidence": {
+      "labels": [
+        {"field": "e1.eta_min", "tag": "amap_route", "fetched_at": "2026-12-04T21:00:00+08:00"},
+        {"field": "profile.bike", "tag": "default", "note": "还没有你的数据"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "request": {
+    "plan": { "plan_id": "p_demo01" },
+    "profile": {},
+    "now": "2026-12-05T07:15:00+08:00",
+    "last_sim": { "p_all": 0.92, "depart_by": "07:38" },
+    "cur_loc": null
+  },
+  "response": {
+    "decision": "notify",
+    "sim": {
+      "p_all": 0.89, "p_target": 0.9, "n_samples": 2000, "seed": 20261205,
+      "per_node": [{"node": "n1", "p_ok": 0.89, "slack_p50": 6, "arrive_p90": "07:55"}],
+      "weakest": {"node": "n1", "p_ok": 0.89},
+      "depart_by": "07:35", "depart_src": ["amap_route"],
+      "computed_at": "2026-12-05T07:15:10+08:00", "inputs_age_s": 10
+    },
+    "reason": "路况变差，建议 07:35 出门，比原来早 3 分钟"
+  }
+}

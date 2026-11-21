@@ -1,0 +1,28 @@
+{"id": "s1_rain_01", "source": "real",
+ "xfail": true,
+ "xfail_reason": "engine.search 在 W3 实现（审计收紧-2：实现后删掉 xfail 并跑 --strict）",
+ "plan": {
+   "plan_id": "p_r01", "version": 1, "scenario": "S1", "title": "早课", "date": "2026-12-02",
+   "city_adcode": "330100", "status": "ACTIVE", "autonomy": "L2", "p_target": 0.9,
+   "members": [{"id": "m0", "alias": "我"}],
+   "nodes": [
+     {"id": "n0", "kind": "origin", "name": "宿舍", "src": {"tag": "user"}},
+     {"id": "n1", "kind": "stay", "category": "class", "name": "三教",
+      "window": {"earliest": null, "latest": "08:00"}, "duration": {"mean_min": 45, "sd_min": 5},
+      "hard": true, "value": 5, "members": ["m0"], "src": {"tag": "calendar"}}
+   ],
+   "edges": [
+     {"id": "e1", "from": "n0", "to": "n1", "mode": "bike", "eta_min": 15, "dist_m": 2600, "cost_yuan": 0,
+      "src": {"tag": "amap_route", "fetched_at": "2026-12-02T07:00:00+08:00"}}
+   ],
+   "constraints": [], "sim": null, "updated_at": "2026-12-02T07:00:05+08:00"
+ },
+ "events": [
+   {"t": "07:15", "kind": "wx_nowcast", "data": {"precip_from": "07:40", "mm_hour": 2.5}},
+   {"t": "07:16", "kind": "user_choice", "data": {"option_id": "o1"}}
+ ],
+ "label": {"affected": ["n1"], "feasible_options": ["walk_early", "bus"], "outcome": "ok"},
+ "recorded_api": {
+   "route:bike:n0:n1:0715": {"eta_min": 15, "dist_m": 2600},
+   "route:walk:n0:n1:0715": {"eta_min": 27, "dist_m": 2600}
+ }}

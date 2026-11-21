@@ -1,0 +1,14 @@
+{
+  "request": {
+    "plan": { "plan_id": "p_demo01" },
+    "option": { "option_id": "o1", "ops": [{"op": "change_mode", "edge": "e1", "to": "walk"}] },
+    "sim": { "p_all": 0.91, "depart_by": "07:31" }
+  },
+  "response": {
+    "text_tpl": "雨变大了，骑车没法打伞。改步行后你{p_after}把握按时到，比原来{delta_min}出门",
+    "slots": ["p_after", "delta_min"],
+    "draft_msgs": [
+      {"to": "同学A", "channel": "wechat", "text_tpl": "我们先进去点菜，你到了直接来找我们"}
+    ]
+  }
+}
