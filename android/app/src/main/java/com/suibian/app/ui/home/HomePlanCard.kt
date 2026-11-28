@@ -36,7 +36,9 @@ import kotlin.math.roundToInt
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-internal fun HomePlanCard(plan: HomePlan, state: HomeState, viewModel: HomeViewModel, onDeploy: () -> Unit) {
+internal fun HomePlanCard(
+    plan: HomePlan, state: HomeState, viewModel: HomeViewModel, onDeploy: () -> Unit, onOpenHistory: () -> Unit,
+) {
     var expanded by rememberSaveable { mutableStateOf(true) }
     var editingDeparture by rememberSaveable { mutableStateOf(false) }
     val inspectionAnchor = remember { BringIntoViewRequester() }
@@ -83,7 +85,10 @@ internal fun HomePlanCard(plan: HomePlan, state: HomeState, viewModel: HomeViewM
                 Button(onClick = viewModel::inspectPlan, enabled = !state.planBusy) { Text("体检") }
             }
             if (state.saved) {
-                TextButton(onClick = onDeploy, enabled = !state.planBusy) { Text("部署到日历和提醒") }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(onClick = onDeploy, enabled = !state.planBusy) { Text("部署到日历和提醒") }
+                    TextButton(onClick = onOpenHistory, enabled = !state.planBusy) { Text("操作记录") }
+                }
             }
             state.inspection?.let { inspection ->
                 InspectionResults(

@@ -57,8 +57,12 @@ class CalendarWriterExecutor @Inject constructor(@ApplicationContext private val
         }
     }
 
-    suspend fun undoCreatedEvent(snapshot: String, planId: String? = null): ExecutionReceipt = perform {
-        writer.undo(snapshot, planId?.let(::calendarPlanMarker))
+    override suspend fun undo(action: Action): Boolean = undoWithReceipt(action).ok
+
+    override suspend fun undoWithReceipt(action: Action): ExecutionReceipt = perform {
+        require(action.type == type && action.planId.isNotBlank())
+        val snapshot = requireNotNull((action.payload["undoData"] as? JsonPrimitive)?.contentOrNull)
+        writer.undo(snapshot, calendarPlanMarker(action.planId))
     }
 
     private suspend fun perform(block: () -> ExecutionReceipt): ExecutionReceipt = withContext(Dispatchers.IO) {

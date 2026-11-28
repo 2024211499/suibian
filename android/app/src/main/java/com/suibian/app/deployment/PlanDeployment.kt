@@ -57,7 +57,12 @@ class PlanDeployment @Inject constructor(
     suspend fun writableCalendars() = calendar.writableCalendars()
 
     suspend fun actions(planId: String, version: Int): List<ActionLogEntity> =
-        log.byBatch("deployment:$version:$planId")
+        latestActions("deployment:$version:$planId")
+
+    fun observeHistory(planId: String) = log.observeForPlan(planId)
+
+    private suspend fun latestActions(batchId: String): List<ActionLogEntity> = log.byBatch(batchId)
+        .groupBy { it.actionType }.values.map { rows -> rows.maxBy { it.id } }
 
     fun recordedSpec(rows: List<ActionLogEntity>): DeploymentSpec? = rows.firstOrNull()?.let { row ->
         runCatching { json.decodeFromString<DeploymentSpec>(row.payloadSummary) }.getOrNull()
@@ -82,7 +87,7 @@ class PlanDeployment @Inject constructor(
                         update(action, "failed", ExecutionReceipt(false, detail = detail))
                     }
                 }
-                val rows = log.byBatch(spec.batchId)
+                val rows = latestActions(spec.batchId)
                 if (deploymentTypes.all { type -> rows.any { it.actionType == type.name && it.decision == "done" } }) {
                     val status = deployedStatus(current.status)
                     if (status.name != current.status) {
@@ -105,7 +110,8 @@ class PlanDeployment @Inject constructor(
     private suspend fun prepare(spec: DeploymentSpec, only: ActionType?): Pair<PlanEntity, List<ActionType>> {
         val current = currentPlan(spec)
         deployedStatus(current.status)
-        val oldRows = log.byBatch(spec.batchId).associateBy { it.actionType }
+        val oldRows = latestActions(spec.batchId).associateBy { it.actionType }
+        check(oldRows.values.none { it.decision == "undo_pending" }) { "请先在操作记录中核对上次撤销" }
         val previous = recordedSpec(oldRows.values.toList())
         val selected = if (only == null) deploymentTypes else listOf(only)
         require(selected.all { it in deploymentTypes }) { "该动作不能通过部署重试" }
@@ -124,7 +130,7 @@ class PlanDeployment @Inject constructor(
         val payload = json.encodeToString(DeploymentSpec.serializer(), spec)
         for (type in deploymentTypes) {
             val old = oldRows[type.name]
-            if (old == null) {
+            if (old == null || (old.decision == "undone" && type in selected)) {
                 log.insert(ActionLogEntity(
                     ts = System.currentTimeMillis(), planId = spec.planId, batchId = spec.batchId,
                     actionType = type.name, tier = type.tier.name, payloadSummary = payload,
@@ -140,6 +146,36 @@ class PlanDeployment @Inject constructor(
     private suspend fun currentPlan(spec: DeploymentSpec): PlanEntity =
         plans.currentByPlanId(spec.planId)?.takeIf { it.version == spec.version }
             ?: throw IllegalStateException("已保存计划的版本有变化，请重新打开当前版本")
+
+    suspend fun undoCalendar(planId: String, recordId: Long): ExecutionReceipt = withContext(Dispatchers.IO) {
+        lock.withLock {
+            val record = log.byId(recordId)
+            if (record == null || record.planId != planId || record.actionType != ActionType.CALENDAR_WRITE.name) {
+                return@withLock ExecutionReceipt(false, detail = "找不到该计划的日历操作")
+            }
+            if (record.decision == "undone") return@withLock ExecutionReceipt(true, detail = "该日历事件已撤销")
+            val spec = recordedSpec(listOf(record))
+            val current = plans.currentByPlanId(planId)
+            val latest = log.latestByAction(record.batchId, record.actionType)
+            if (spec == null || current?.version != spec.version || latest?.id != recordId ||
+                record.decision !in setOf("done", "undo_pending") || record.undoData.isBlank()) {
+                return@withLock ExecutionReceipt(false, detail = "这是旧记录或缺少可核对的日历事件")
+            }
+            log.insert(record.copy(ts = System.currentTimeMillis(), decision = "undo_pending", evidenceJson = "{}"))
+            val result = gateway.undoWithReceipt(Action(
+                type = ActionType.CALENDAR_WRITE,
+                payload = buildJsonObject { put("undoData", record.undoData) },
+                batchId = record.batchId,
+                planId = planId,
+            ))
+            log.insert(record.copy(
+                ts = System.currentTimeMillis(),
+                decision = if (result.ok) "undone" else "done",
+                evidenceJson = buildJsonObject { put("detail", result.detail) }.toString(),
+            ))
+            result
+        }
+    }
 
     private fun deployedStatus(status: String): PlanStatus = when (status) {
         "DRAFT" -> PlanStateMachine.reduce(PlanStatus.DRAFT, PlanEvent.Confirm).first

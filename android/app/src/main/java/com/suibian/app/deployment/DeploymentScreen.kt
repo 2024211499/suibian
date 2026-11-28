@@ -103,6 +103,9 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
             }
         }
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (state.records.isNotEmpty()) {
+            TextButton(onClick = viewModel::openEditorHistory, enabled = !state.busy) { Text("操作记录") }
+        }
         Button(onClick = { viewModel.preparePreview() }, enabled = !state.busy && (!calendarWritten || !reminderWritten)) {
             Text("预览部署动作")
         }
@@ -164,6 +167,7 @@ internal fun deploymentDecisionLabel(decision: String) = when (decision) {
     "done" -> "已执行"
     "failed" -> "未执行，可重试"
     "confirmed" -> "执行结果待确认"
+    "undo_pending" -> "撤销结果待确认"
     "undone" -> "已撤销"
     else -> "待执行"
 }

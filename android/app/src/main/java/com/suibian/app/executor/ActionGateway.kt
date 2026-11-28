@@ -41,6 +41,7 @@ interface Executor {
     suspend fun runWithReceipt(action: Action): ExecutionReceipt = ExecutionReceipt(run(action))
     /** undo=true 的动作支持撤销；一次采纳方案产生的动作同 batch 整批撤销。 */
     suspend fun undo(action: Action): Boolean = false
+    suspend fun undoWithReceipt(action: Action): ExecutionReceipt = ExecutionReceipt(undo(action))
 }
 
 class ActionGateway(
@@ -100,10 +101,15 @@ class ActionGateway(
         }
     }
 
-    suspend fun undo(action: Action): Boolean {
-        val type = ActionType.entries.firstOrNull { it == action.type } ?: return false
-        if (!type.undoable) return false
-        val executor = executors[type] ?: return false
-        return executor.undo(action)
+    suspend fun undo(action: Action): Boolean = undoWithReceipt(action).ok
+
+    suspend fun undoWithReceipt(action: Action): ExecutionReceipt {
+        val type = action.type
+        if (!type.undoable) return ExecutionReceipt(false, detail = "该动作无法撤销")
+        if (type.grant != null && !permissionChecker(type)) {
+            return ExecutionReceipt(false, detail = "请开启日历读写权限后重试撤销")
+        }
+        val executor = executors[type] ?: return ExecutionReceipt(false, detail = "该动作暂无法撤销")
+        return executionLock.withLock { executor.undoWithReceipt(action) }
     }
 }

@@ -8,6 +8,8 @@ import com.suibian.app.executor.ActionType
 import com.suibian.app.executor.ExecutionReceipt
 import com.suibian.app.executor.Executor
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -78,5 +80,29 @@ class DeploymentTest {
         gateway.submit(reminderAction, confirmed = true)
         assertEquals(listOf("CALENDAR_WRITE:confirmed", "CALENDAR_WRITE:true:event:42", "ALARM_SET:confirmed",
             "ALARM_SET:false:", "ALARM_SET:confirmed", "ALARM_SET:true:"), log)
+    }
+
+    @Test
+    fun `calendar undo is permission gated and returns the executor result for persistence`() = runBlocking {
+        var anyCalendarPermission = false
+        var attempts = 0
+        val executor = object : Executor {
+            override val type = ActionType.CALENDAR_WRITE
+            override suspend fun run(action: Action) = false
+            override suspend fun undoWithReceipt(action: Action): ExecutionReceipt {
+                attempts++
+                assertEquals("\"event:42\"", action.payload["undoData"].toString())
+                return if (attempts == 1) ExecutionReceipt(false, detail = "外部事件变化")
+                else ExecutionReceipt(true, detail = "日历事件已不存在")
+            }
+        }
+        val gateway = ActionGateway(mapOf(executor.type to executor), { "L2" }, { anyCalendarPermission })
+        val action = Action(executor.type, buildJsonObject { put("undoData", "event:42") }, planId = "p1")
+        assertFalse(gateway.undoWithReceipt(action).ok)
+        assertEquals(0, attempts)
+        anyCalendarPermission = true
+        assertEquals(ExecutionReceipt(false, detail = "外部事件变化"), gateway.undoWithReceipt(action))
+        assertEquals(ExecutionReceipt(true, detail = "日历事件已不存在"), gateway.undoWithReceipt(action))
+        assertEquals(2, attempts)
     }
 }

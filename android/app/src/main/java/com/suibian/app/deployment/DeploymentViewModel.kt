@@ -8,6 +8,7 @@ import com.suibian.app.executor.WritableCalendar
 import com.suibian.app.ui.home.HomePlan
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -20,6 +21,9 @@ import javax.inject.Inject
 class DeploymentViewModel @Inject constructor(private val deployment: PlanDeployment) : ViewModel() {
     private val _editor = MutableStateFlow<DeploymentEditor?>(null)
     val editor = _editor.asStateFlow()
+    private val _history = MutableStateFlow<DeploymentHistory?>(null)
+    val history = _history.asStateFlow()
+    private var historyObserver: Job? = null
 
     fun open(plan: HomePlan, trialDeparture: Int) {
         val summary = plan.summary
@@ -53,6 +57,61 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
 
     fun close() {
         if (_editor.value?.busy != true) _editor.value = null
+    }
+
+    fun openEditorHistory() {
+        val editor = _editor.value?.takeUnless { it.busy } ?: return
+        openHistory(editor.planId, editor.version)
+    }
+
+    fun openHistory(planId: String, version: Int) {
+        historyObserver?.cancel()
+        _history.value = DeploymentHistory(planId, version)
+        historyObserver = viewModelScope.launch {
+            try {
+                deployment.observeHistory(planId).collect { rows ->
+                    _history.update { it?.copy(rows = rows) }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _history.update { it?.copy(message = "暂时无法读取操作记录") }
+            }
+        }
+    }
+
+    fun closeHistory() {
+        if (_history.value?.busy == true) return
+        historyObserver?.cancel()
+        historyObserver = null
+        _history.value = null
+        val editor = _editor.value ?: return
+        _editor.value = editor.copy(busy = true)
+        viewModelScope.launch {
+            try {
+                val rows = deployment.actions(editor.planId, editor.version)
+                _editor.value = editor.copy(busy = false, records = rows)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _editor.value = editor.copy(busy = false, message = "暂时无法刷新操作结果")
+            }
+        }
+    }
+
+    fun undoCalendar(recordId: Long) {
+        val history = _history.value?.takeUnless { it.busy } ?: return
+        _history.value = history.copy(busy = true, message = null)
+        viewModelScope.launch {
+            val detail = try {
+                deployment.undoCalendar(history.planId, recordId).detail
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                "撤销结果待核对，可打开记录后重试"
+            }
+            _history.update { it?.copy(busy = false, message = detail) }
+        }
     }
 
     fun changeForm(change: (DeploymentForm) -> DeploymentForm) {
@@ -124,3 +183,11 @@ data class DeploymentEditor(
 )
 
 data class DeploymentPreview(val spec: DeploymentSpec, val only: ActionType?)
+
+data class DeploymentHistory(
+    val planId: String,
+    val version: Int,
+    val rows: List<ActionLogEntity> = emptyList(),
+    val busy: Boolean = false,
+    val message: String? = null,
+)

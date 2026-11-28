@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.suibian.app.BuildConfig
+import com.suibian.app.deployment.DeploymentHistoryScreen
 import com.suibian.app.deployment.DeploymentScreen
 import com.suibian.app.deployment.DeploymentViewModel
 
@@ -43,6 +44,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: 
     val state by viewModel.state.collectAsState()
     val savedPlans by viewModel.savedPlans.collectAsState()
     val deployment by deploymentViewModel.editor.collectAsState()
+    val history by deploymentViewModel.history.collectAsState()
     var input by rememberSaveable { mutableStateOf("") }
 
     // 出门提醒要 POST_NOTIFICATIONS 运行时授权（Android 13+）；拒绝只影响通知显示，闹钟本身照设。
@@ -54,6 +56,10 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: 
         if (deployment == null) viewModel.refreshSavedPreview()
     }
 
+    history?.let {
+        DeploymentHistoryScreen(it, deploymentViewModel)
+        return
+    }
     deployment?.let {
         DeploymentScreen(it, deploymentViewModel)
         return
@@ -83,7 +89,11 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: 
         state.notice?.let { Text(it) }
         state.plan?.let { plan ->
             key(plan.summary.id, plan.summary.version) {
-                HomePlanCard(plan, state, viewModel) { deploymentViewModel.open(plan, state.departureMinute) }
+                HomePlanCard(
+                    plan, state, viewModel,
+                    onDeploy = { deploymentViewModel.open(plan, state.departureMinute) },
+                    onOpenHistory = { deploymentViewModel.openHistory(plan.summary.id, plan.summary.version) },
+                )
             }
         }
 
