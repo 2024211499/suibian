@@ -52,9 +52,13 @@ class Settings(BaseSettings):
     amap_web_key: str = Field(default="", repr=False)
     provider_master_key: str = Field(default="", repr=False)
     qw_host: str = ""  # 和风控制台分配的 API Host
+    qw_api_key: str = Field(default="", repr=False)
+    qw_developer_id: str = ""
     qw_project_id: str = ""
     qw_key_id: str = ""
-    qw_private_key: str = ""
+    qw_private_key: str = Field(default="", repr=False)
+    qw_timeout_s: float = Field(default=4, gt=0, le=10)
+    refresh_timeout_s: float = Field(default=15, gt=0, le=30)
     redis_url: str = "redis://localhost:6379/0"
 
     # --- 预算与限流（技术文档 6.4 / 14.3，配额为 2025-05 月配额制）---

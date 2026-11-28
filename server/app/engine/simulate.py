@@ -8,11 +8,12 @@ TODO(W2)：接入画像 factor（7.5）、情境修正 ctx（engine/context.py�
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
 from app.engine.models import Node, PlanGraph
+from app.engine.weather import TravelWeather
 
 # 冷启动 σ（技术文档 7.6）
 SIGMA_BY_MODE = {"walk": 0.08, "bike": 0.10, "ebike": 0.10, "bus": 0.20, "taxi": 0.18, "drive": 0.18}
@@ -72,6 +73,11 @@ class SimResult:
     seed: int | None
     per_node: dict[str, dict]  # 内部按节点 id 存；to_dict() 输出为列表（契约见 test_contract）
     weakest: dict | None
+    weather_coverage: dict[str, dict] = field(default_factory=dict)
+
+    @property
+    def weather_complete(self) -> bool:
+        return all(entry["unknown_samples"] == 0 for entry in self.weather_coverage.values())
 
     def to_dict(self) -> dict:
         return {
@@ -92,13 +98,14 @@ def simulate(
     deterministic: bool = False,
     factors: dict[str, float] | None = None,
     ctx_factors: dict[str, float] | None = None,
+    weather: dict[str, TravelWeather] | None = None,
 ) -> SimResult:
     """推演一次计划。
 
     depart_min: 计划出发时刻（当日分钟数，如 7:30 = 450）。窗口和 arrive_by 约束都是
     绝对时刻，所以 depart_min 必须传实际值；测试里显式传。
     deterministic: σ=0、时长无方差、无等车 —— 用于性质测试（13.1：全确定时 p ∈ {0,1}）。
-    factors/ctx_factors: 画像系数与情境修正（TODO(W2)）。
+    factors/ctx_factors: 固定画像／情境系数；weather 按各样本路段开始时刻匹配预报。
     """
     order = validate_graph(g)
     arrival_limits: dict[str, list[tuple[float, bool]]] = {}
@@ -120,6 +127,9 @@ def simulate(
 
     t = np.full(n, float(depart_min))
     ok = np.ones(n, dtype=bool)
+    blocked = np.zeros(n, dtype=bool)
+    unknown = np.zeros(n, dtype=bool)
+    coverage = {}
     origin = next(node for node in g.nodes if node.kind == "origin")
     for deadline, hard in arrival_limits.get(origin.id, []):
         if hard:
@@ -134,11 +144,27 @@ def simulate(
             if deterministic:
                 sigma = 0.0
             factor = (factors or {}).get(e.mode, 1.0) * (ctx_factors or {}).get(e.mode, 1.0)
+            weather_factor, extra_wait = 1.0, 0.0
+            if weather is not None:
+                current = weather.get(e.id)
+                if current is None:
+                    weather_factor, extra_wait, unavailable, covered = 1.0, 0.0, np.zeros(n, bool), np.zeros(n, bool)
+                else:
+                    weather_factor, extra_wait, unavailable, covered = current.modifiers(t, e.mode)
+                eligible = ~blocked
+                coverage[e.id] = {
+                    "covered_samples": int((covered & eligible).sum()),
+                    "unknown_samples": int((~covered & eligible).sum()),
+                    "blocked_samples": int((unavailable & eligible).sum()),
+                }
+                unknown |= ~covered & eligible
+                blocked |= unavailable & eligible
+                ok &= ~blocked
             z = Z[:, col[e.id]]
-            dur = e.eta_min * factor * np.exp(sigma * z - sigma**2 / 2)
+            dur = e.eta_min * factor * weather_factor * np.exp(sigma * z - sigma**2 / 2)
             if not deterministic and e.mode in WAIT_DEFAULT:
                 wait = e.wait_mean if e.wait_mean is not None else WAIT_DEFAULT[e.mode]
-                dur = dur + W[:, col[e.id]] * wait
+                dur = dur + W[:, col[e.id]] * (wait + extra_wait)
             arrive = t + dur
         else:
             arrive = t.copy()
@@ -159,12 +185,15 @@ def simulate(
             slack_limits.append(arrival_slack)
             if hard:
                 ok &= arrival_slack >= 0
+        hit &= ~blocked
         p_ok = float(hit.mean())
 
         entry: dict = {"p_ok": round(p_ok, 4), "arrive_p90": float(np.percentile(arrive, 90))}
         entry["slack_p50"] = (
             float(np.percentile(np.minimum.reduce(slack_limits), 50)) if slack_limits else None
         )
+        if blocked.any() or unknown.any():
+            entry["arrive_p90"] = entry["slack_p50"] = None
         per_node[node.id] = entry
         if weakest is None or p_ok < weakest["p_ok"]:
             weakest = {"node": node.id, "p_ok": round(p_ok, 4)}
@@ -173,7 +202,8 @@ def simulate(
         stay = rng.normal(mean, sd, n) if sd > 0 else np.full(n, float(mean))
         t = start + np.maximum(stay, 0)
 
-    return SimResult(p_all=float(ok.mean()), n_samples=n, seed=seed, per_node=per_node, weakest=weakest)
+    return SimResult(p_all=float(ok.mean()), n_samples=n, seed=seed, per_node=per_node,
+                     weakest=weakest, weather_coverage=coverage)
 
 
 def depart_by(
@@ -192,6 +222,14 @@ def depart_by(
     会错报 hi-1）；lo 都不可行时返回 None。
     """
     base = float(depart_min)
+    if kwargs.get("weather") is not None:
+        # 时变降雨可能出现“现在不可行、晚些可行”，不能使用单调二分。
+        for offset in range(int(hi), int(lo) - 1, -1):
+            result = simulate(g, seed=seed, depart_min=base + offset, **kwargs)
+            prohibited = any(entry["blocked_samples"] for entry in result.weather_coverage.values())
+            if result.weather_complete and not prohibited and result.p_all >= target_p:
+                return {"offset_min": offset, "depart_min": base + offset, "upper_bound": offset == hi}
+        return None
     if simulate(g, seed=seed, depart_min=base + lo, **kwargs).p_all < target_p:
         return None
     if simulate(g, seed=seed, depart_min=base + hi, **kwargs).p_all >= target_p:

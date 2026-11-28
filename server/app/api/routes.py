@@ -11,14 +11,17 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from sse_starlette.sse import EventSourceResponse
 
 from app.config import get_settings, use_settings
 from app.engine.models import PlanGraph, Src
 from app.engine.simulate import depart_by
 from app.engine.simulate import simulate as run_simulation
+from app.llm.validate import SchemaError
 from app.plan_input.parser import ParseRequest, parse_plan
+from app.refresh import RefreshRequest, refresh_plan
+from app.weather_simulation import evaluate_weather
 
 router = APIRouter()
 
@@ -66,6 +69,17 @@ class SimulationRequest(BaseModel):
         if self.depart_min is None:
             raise ValueError("请提交 depart_min（当天出发的分钟数）")
         return self.depart_min
+
+
+class WeatherSimulationRequest(SimulationRequest):
+    use_weather: bool = False
+    now: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def weather_reference_required(self):
+        if self.use_weather and self.now is None:
+            raise ValueError("天气推演需要带时区的 now")
+        return self
 
 
 class LegDelay(BaseModel):
@@ -137,7 +151,16 @@ async def generate_result(job_id: str):
 
 
 @router.post("/simulate")
-def simulate(payload: SimulationRequest):
+async def simulate(payload: WeatherSimulationRequest):
+    if not payload.use_weather:
+        return await asyncio.to_thread(_simulate_plain, payload)
+    try:
+        return await evaluate_weather(payload.itinerary(), payload.now, payload.departure(), payload.n, payload.seed)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+def _simulate_plain(payload: SimulationRequest):
     """完整计划在两种运行模式下使用同一引擎。"""
     if get_settings().mock and payload.plan == {"plan_id": "p_demo01"}:
         return _example("simulate")
@@ -164,9 +187,16 @@ def simulate(payload: SimulationRequest):
 
 
 @router.post("/refresh")
-async def refresh(payload: dict = Body(...)):
+async def refresh(payload: RefreshRequest, request: Request):
     """3.1 天气 / 3.2 路况：重查并更新边的 ETA 和来源标签。"""
-    return _mock_or_todo("refresh", "W3", "/v1/refresh：天气 + 路况刷新")
+    if get_settings().mock:
+        return _example("refresh")
+    settings = await asyncio.to_thread(request.app.state.provider_store.effective_settings, get_settings())
+    with use_settings(settings):
+        try:
+            return await refresh_plan(payload)
+        except (ValueError, SchemaError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/report")

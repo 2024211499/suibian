@@ -1,0 +1,52 @@
+{
+  "verified_at": "2026-11-28T17:01:42.938823+08:00",
+  "scenario_source": "synthetic",
+  "weather_data_source": "not_configured",
+  "route_data_source": "live_amap",
+  "unauthorized_status": 401,
+  "refresh_status": 200,
+  "result": {
+    "plan_patch": {
+      "edges": [
+        {
+          "id": "e1",
+          "eta_min": 36.516666666666666,
+          "dist_m": 2739.0,
+          "src": {
+            "tag": "amap_route",
+            "fetched_at": "2026-11-28T09:01:43.688562+00:00"
+          }
+        }
+      ]
+    },
+    "changed": [],
+    "weather": {
+      "source": null,
+      "fetched_at": null,
+      "status": "unavailable",
+      "scope": "origin",
+      "hourly_precip_mm": null,
+      "hourly_forecast_at": null,
+      "precip_from": null,
+      "precip_from_at": null,
+      "bike_available": null,
+      "warnings": [],
+      "attributions": [],
+      "effects": {}
+    },
+    "errors": [
+      {
+        "field": "hourly",
+        "code": "QWEATHER_CONFIG"
+      },
+      {
+        "field": "minutely",
+        "code": "QWEATHER_CONFIG"
+      },
+      {
+        "field": "warning",
+        "code": "QWEATHER_CONFIG"
+      }
+    ]
+  }
+}

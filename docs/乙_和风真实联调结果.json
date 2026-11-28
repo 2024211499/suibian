@@ -1,0 +1,303 @@
+{
+  "verified_at": "2026-11-28T09:12:09.703427+00:00",
+  "scenario_source": "synthetic",
+  "data_source": "live_qweather",
+  "location": {
+    "lng": 116.397463,
+    "lat": 39.909187
+  },
+  "gateway_results": {
+    "hourly": {
+      "ok": true,
+      "elapsed_s": 1.391,
+      "rows": 24,
+      "result": {
+        "source": "qweather_hourly",
+        "fetched_at": "2026-11-28T09:12:09.703427+00:00",
+        "attributions": [
+          "https://developer.qweather.com/attribution.html"
+        ],
+        "hours": [
+          {
+            "time": "2026-11-28T10:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T11:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T12:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T13:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T14:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T15:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T16:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T17:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T18:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T19:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T20:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T21:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T22:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T23:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T00:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T01:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T02:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T03:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T04:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T05:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T06:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T07:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T08:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-29T09:00:00+00:00",
+            "precip_mm": 0.0
+          }
+        ],
+        "period_min": 60
+      }
+    },
+    "minutely": {
+      "ok": true,
+      "elapsed_s": 0.922,
+      "rows": 24,
+      "result": {
+        "source": "qweather_minutely",
+        "fetched_at": "2026-11-28T09:12:09.700024+00:00",
+        "attributions": [
+          "QWeather",
+          "QWeather Developers License"
+        ],
+        "minutes": [
+          {
+            "time": "2026-11-28T09:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:05:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:10:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:15:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:20:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:25:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:30:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:35:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:40:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:45:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:50:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T09:55:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:00:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:05:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:10:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:15:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:20:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:25:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:30:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:35:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:40:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:45:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:50:00+00:00",
+            "precip_mm": 0.0
+          },
+          {
+            "time": "2026-11-28T10:55:00+00:00",
+            "precip_mm": 0.0
+          }
+        ],
+        "period_min": 5,
+        "updated_at": "2026-11-28T09:00:00+00:00"
+      }
+    },
+    "warning": {
+      "ok": true,
+      "elapsed_s": 0.531,
+      "rows": 0,
+      "result": {
+        "source": "qweather_warning",
+        "fetched_at": "2026-11-28T09:12:09.681593+00:00",
+        "attributions": [],
+        "warnings": []
+      }
+    }
+  },
+  "http_refresh": {
+    "unauthorized_status": 401,
+    "registration_status": 201,
+    "status": 200,
+    "elapsed_s": 1.812,
+    "request_now": "2026-11-28T17:12:21.365011+08:00",
+    "result": {
+      "plan_patch": {
+        "edges": [
+          {
+            "id": "e1",
+            "eta_min": 36.516666666666666,
+            "dist_m": 2739.0,
+            "src": {
+              "tag": "amap_route",
+              "fetched_at": "2026-11-28T09:12:23.194921+00:00"
+            }
+          }
+        ]
+      },
+      "changed": [],
+      "weather": {
+        "source": "qweather_hourly",
+        "fetched_at": "2026-11-28T09:12:23.216359+00:00",
+        "status": "partial",
+        "scope": "origin",
+        "hourly_precip_mm": 0.0,
+        "hourly_forecast_at": "2026-11-28T10:00:00+00:00",
+        "precip_from": null,
+        "precip_from_at": null,
+        "bike_available": true,
+        "warnings": [],
+        "attributions": [
+          "https://developer.qweather.com/attribution.html"
+        ],
+        "effects": {},
+        "sources": {
+          "hourly": {
+            "source": "qweather_hourly",
+            "fetched_at": "2026-11-28T09:12:23.216359+00:00"
+          },
+          "warning": {
+            "source": "qweather_warning",
+            "fetched_at": "2026-11-28T09:12:23.219260+00:00"
+          }
+        },
+        "effects_source": "default",
+        "rules_version": 1
+      },
+      "errors": [
+        {
+          "field": "minutely",
+          "code": "WEATHER_STALE"
+        }
+      ]
+    }
+  }
+}

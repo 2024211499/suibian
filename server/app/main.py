@@ -14,6 +14,7 @@ from app.auth.routes import Credentials, protect_business
 from app.auth.routes import router as auth_router
 from app.auth.store import AuthError, AuthStore
 from app.config import Settings, get_settings
+from app.gateway.qweather import configured as weather_configured
 from app.providers.routes import router as provider_router
 from app.providers.runtime import ModelRuntime
 from app.providers.store import ProviderConfigurationError, ProviderStore
@@ -105,7 +106,7 @@ def create_app() -> FastAPI:
                 for name, val in [
                     ("llm_key", effective.qwen_key or effective.ds_key),
                     ("amap_web_key", effective.amap_web_key),
-                    ("qw_private_key", effective.qw_private_key),
+                    ("qweather_credentials", weather_configured(effective)),
                 ]
                 if not val
             ]
