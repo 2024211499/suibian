@@ -90,7 +90,7 @@ class HomeViewModel @Inject constructor(
     fun parse(text: String) {
         if (text.isBlank()) return
         planAction("解析行程失败") {
-            _state.update { it.copy(plan = null, inspection = null, rain = null, notice = null, saved = false) }
+            _state.update { it.withPlan(null) }
             val input = buildJsonObject {
                 put("text", text.trim())
                 put("now", OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
@@ -105,7 +105,11 @@ class HomeViewModel @Inject constructor(
 
     fun openSavedPlan(entity: PlanEntity) = planAction("打开已存计划失败") {
         val plan = HomePlan.from(json.parseToJsonElement(entity.json).jsonObject, json)
-        _state.update { it.copy(plan = plan, inspection = null, rain = null, notice = null, saved = true) }
+        _state.update { it.withPlan(plan, isSaved = true) }
+    }
+
+    fun closePlan() {
+        _state.update { if (it.planBusy) it else it.withPlan(null) }
     }
 
     fun savePlan() {
@@ -123,20 +127,44 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun inspectPlan() {
+    fun changeDeparture(minute: Int) {
+        _state.update { if (it.planBusy || it.plan == null) it else it.withDeparture(minute) }
+    }
+
+    fun changeRainDelay(minutes: Int) {
+        _state.update { if (it.planBusy || it.plan == null) it else it.withRainDelay(minutes) }
+    }
+
+    fun inspectPlan() = inspectAt(_state.value.departureMinute)
+
+    fun followDepartureRecommendation() {
+        val recommended = _state.value.inspection?.departBy?.let(::parseDepartureMinute) ?: return
+        inspectAt(recommended)
+    }
+
+    private fun inspectAt(departure: Int) {
         val plan = _state.value.plan ?: return
         planAction("体检失败") {
-            _state.update { it.copy(inspection = null) }
-            val reply = api.simulate(plan.inspectionRequest(DEMO_DEPART_MIN))
+            _state.update { it.withDeparture(departure).copy(inspection = null) }
+            val reply = api.simulate(plan.inspectionRequest(departure))
             _state.update { it.copy(inspection = PlanInspection.from(reply, json)) }
         }
     }
 
-    fun simulateRain() {
+    fun simulateRain() = simulateRainAt(_state.value.departureMinute)
+
+    fun simulateRainEarlier() {
+        if (_state.value.rain?.options?.isEmpty() != true) return
+        val earlier = _state.value.departureMinute - EARLIER_RAIN_RECHECK_MINUTES
+        if (earlier >= 0) simulateRainAt(earlier)
+    }
+
+    private fun simulateRainAt(departure: Int) {
         val plan = _state.value.plan ?: return
+        val delay = _state.value.rainDelayMinutes
         planAction("降雨复算失败") {
-            _state.update { it.copy(rain = null) }
-            val request = plan.rainRequest(DEMO_DEPART_MIN, DEMO_RAIN_DELAY_MIN)
+            _state.update { it.withDeparture(departure).copy(rain = null) }
+            val request = plan.rainRequest(departure, delay)
             if (request == null) {
                 _state.update { it.copy(notice = "当前计划没有可复算的路段。") }
                 return@planAction
@@ -201,8 +229,6 @@ class HomeViewModel @Inject constructor(
             .format(DateTimeFormatter.ofPattern(if (withSeconds) "HH:mm:ss" else "HH:mm"))
 
     companion object {
-        private const val DEMO_DEPART_MIN = 420
-        private const val DEMO_RAIN_DELAY_MIN = 15
         /** 调试用固定 planId：alarm 表主键 (planId, kind)，重复点按钮覆盖同一行。 */
         const val DEBUG_PLAN_ID = "debug-plan"
         private const val DEPART_DELAY_MS = 30L * 60_000
@@ -215,11 +241,40 @@ data class HomeState(
     val healthLoading: Boolean = false,
     val planBusy: Boolean = false,
     val plan: HomePlan? = null,
+    val departureMinute: Int = DEFAULT_DEPARTURE_MINUTE,
+    val rainDelayMinutes: Int = DEFAULT_RAIN_DELAY_MINUTES,
     val inspection: PlanInspection? = null,
     val rain: RainComparison? = null,
     val saved: Boolean = false,
     val savedPlansUnavailable: Boolean = false,
     val notice: String? = null,
-)
+) {
+    internal fun withPlan(value: HomePlan?, isSaved: Boolean = false) = copy(
+        plan = value,
+        departureMinute = DEFAULT_DEPARTURE_MINUTE,
+        rainDelayMinutes = DEFAULT_RAIN_DELAY_MINUTES,
+        inspection = null,
+        rain = null,
+        saved = isSaved,
+        notice = null,
+    )
+
+    internal fun withDeparture(minute: Int): HomeState = if (minute in 0..1439 && minute != departureMinute) {
+        copy(departureMinute = minute, inspection = null, rain = null, notice = null)
+    } else {
+        this
+    }
+
+    internal fun withRainDelay(minutes: Int): HomeState = if (minutes in rainDelayChoices && minutes != rainDelayMinutes) {
+        copy(rainDelayMinutes = minutes, rain = null, notice = null)
+    } else {
+        this
+    }
+}
+
+private const val DEFAULT_DEPARTURE_MINUTE = 7 * 60
+private const val DEFAULT_RAIN_DELAY_MINUTES = 15
+internal const val EARLIER_RAIN_RECHECK_MINUTES = 10
+internal val rainDelayChoices = listOf(DEFAULT_RAIN_DELAY_MINUTES, 30, 45)
 
 data class SavedHomePlan(val entity: PlanEntity, val title: String)

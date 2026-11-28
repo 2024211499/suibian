@@ -56,6 +56,7 @@ data class PlanSummary(
     val date: String,
     val nodes: List<PlanStop>,
     val edges: List<PlanLeg>,
+    @SerialName("p_target") val targetProbability: Double? = null,
 )
 
 @Serializable
@@ -72,6 +73,7 @@ data class PlanInspection(
     @SerialName("p_all") val probability: Double,
     @SerialName("depart_by") val departBy: String? = null,
     val weakest: WeakestStop? = null,
+    @SerialName("p_target") val targetProbability: Double? = null,
 ) {
     companion object {
         fun from(response: JsonObject, json: Json): PlanInspection = json.decodeFromJsonElement(
@@ -106,3 +108,12 @@ internal data class ParseResponse(
     @SerialName("draft_plan") val draft: JsonObject? = null,
     val questions: List<String> = emptyList(),
 )
+
+internal fun parseDepartureMinute(text: String): Int? {
+    val (hourText, minuteText) = departurePattern.matchEntire(text.trim())?.destructured ?: return null
+    val hour = hourText.toInt()
+    val minute = minuteText.toInt()
+    return if (hour in 0..23 && minute in 0..59) hour * 60 + minute else null
+}
+
+private val departurePattern = Regex("([0-9]{1,2}):([0-9]{2})")

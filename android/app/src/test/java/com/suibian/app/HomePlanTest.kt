@@ -1,8 +1,10 @@
 package com.suibian.app
 
 import com.suibian.app.ui.home.HomePlan
+import com.suibian.app.ui.home.HomeState
 import com.suibian.app.ui.home.PlanInspection
 import com.suibian.app.ui.home.RainComparison
+import com.suibian.app.ui.home.parseDepartureMinute
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -48,6 +50,52 @@ class HomePlanTest {
         )
         assertEquals(0.0, inspection.probability, 0.0)
         assertNull(inspection.departBy)
+    }
+
+    @Test
+    fun `departure input accepts a 24 hour time and rejects malformed values`() {
+        assertEquals(450, parseDepartureMinute("07:30"))
+        assertEquals(450, parseDepartureMinute(" 7:30 "))
+        assertEquals(0, parseDepartureMinute("00:00"))
+        assertEquals(1439, parseDepartureMinute("23:59"))
+        listOf("", "24:00", "12:60", "7:5", "07:30:00", "12pm").forEach {
+            assertNull(parseDepartureMinute(it))
+        }
+    }
+
+    @Test
+    fun `rechecks use custom departure and delay on the same starting leg`() {
+        val graph = objectFrom(
+            """{
+                "plan_id":"sample","version":4,"status":"DRAFT","title":"按时上课","date":"2026-12-05",
+                "nodes":[{"id":"origin","name":"宿舍","kind":"origin"},{"id":"stop","name":"三教"}],
+                "edges":[{"id":"second","from":"stop"},{"id":"first","from":"origin"}]
+            }""",
+        )
+        val plan = HomePlan.from(graph, json)
+        val request = requireNotNull(plan.rainRequest(450, 30))
+        assertEquals(graph, request["plan"])
+        assertEquals("450", request["depart_min"].toString())
+        assertEquals(objectFrom("""{"kind":"route_delay","data":{"edge_id":"first","delay_min":30}}"""), request["trigger"])
+        assertEquals("440", plan.rainRequest(440, 30)?.get("depart_min").toString())
+    }
+
+    @Test
+    fun `changing departure invalidates both simulations but changing delay only invalidates rain`() {
+        val inspection = PlanInspection(probability = 1.0, departBy = "07:43")
+        val rain = RainComparison(1, inspection, inspection, emptyList(), emptyList())
+        val checked = HomeState(inspection = inspection, rain = rain, saved = true)
+        val later = checked.withDeparture(450)
+        assertEquals(450, later.departureMinute)
+        assertNull(later.inspection)
+        assertNull(later.rain)
+        assertEquals(true, later.saved)
+        val delayed = checked.withRainDelay(30)
+        assertEquals(30, delayed.rainDelayMinutes)
+        assertEquals(inspection, delayed.inspection)
+        assertNull(delayed.rain)
+        val closed = delayed.withPlan(null)
+        assertEquals(HomeState(), closed)
     }
 
     @Test
