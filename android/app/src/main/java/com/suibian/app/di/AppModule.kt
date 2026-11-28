@@ -7,6 +7,7 @@ import com.suibian.app.background.AlarmScheduler
 import com.suibian.app.data.api.SuibianApi
 import com.suibian.app.data.db.AppDatabase
 import com.suibian.app.data.db.MIGRATION_1_2
+import com.suibian.app.data.db.MIGRATION_2_3
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,7 +53,7 @@ object AppModule {
     @Singleton
     fun appDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "suibian.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

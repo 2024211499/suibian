@@ -26,10 +26,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val planId = intent.getStringExtra(AlarmScheduler.EXTRA_PLAN_ID) ?: return
         val action = intent.action ?: return
         val triggerAt = intent.getLongExtra(AlarmScheduler.EXTRA_TRIGGER_AT, 0)
+        val planVersion = intent.getIntExtra(AlarmScheduler.EXTRA_PLAN_VERSION, 0).takeIf { it > 0 }
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (!alarmScheduler.consume(planId, action, triggerAt)) return@launch
+                if (!alarmScheduler.consume(planId, action, triggerAt, planVersion)) return@launch
                 if (action == AlarmScheduler.ACTION_DEPART) {
                     NotificationHelper.ensureChannels(context)
                     NotificationHelper.notifyDepart(

@@ -108,6 +108,15 @@ class HomeViewModel @Inject constructor(
         _state.update { it.withPlan(plan, isSaved = true) }
     }
 
+    fun refreshSavedPreview() {
+        val opened = _state.value.plan?.takeIf { _state.value.saved } ?: return
+        planAction("刷新已存计划失败") {
+            val current = planDao.currentByPlanId(opened.summary.id) ?: return@planAction
+            val graph = json.parseToJsonElement(current.json).jsonObject
+            if (graph != opened.graph) _state.update { it.withPlan(HomePlan.from(graph, json), isSaved = true) }
+        }
+    }
+
     fun closePlan() {
         _state.update { if (it.planBusy) it else it.withPlan(null) }
     }

@@ -19,6 +19,13 @@ import com.suibian.app.MainActivity
 object NotificationHelper {
     const val CHANNEL_DEPART = "depart"
 
+    fun canShowDepart(context: Context): Boolean {
+        ensureChannels(context)
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+            manager.getNotificationChannel(CHANNEL_DEPART)?.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -32,19 +33,31 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.suibian.app.BuildConfig
+import com.suibian.app.deployment.DeploymentScreen
+import com.suibian.app.deployment.DeploymentViewModel
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: DeploymentViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val message by viewModel.message.collectAsState()
     val state by viewModel.state.collectAsState()
     val savedPlans by viewModel.savedPlans.collectAsState()
+    val deployment by deploymentViewModel.editor.collectAsState()
     var input by rememberSaveable { mutableStateOf("") }
 
     // 出门提醒要 POST_NOTIFICATIONS 运行时授权（Android 13+）；拒绝只影响通知显示，闹钟本身照设。
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> viewModel.debugScheduleDepartAlarm(notificationsGranted = granted) }
+
+    LaunchedEffect(deployment != null) {
+        if (deployment == null) viewModel.refreshSavedPreview()
+    }
+
+    deployment?.let {
+        DeploymentScreen(it, deploymentViewModel)
+        return
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -70,7 +83,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         state.notice?.let { Text(it) }
         state.plan?.let { plan ->
             key(plan.summary.id, plan.summary.version) {
-                HomePlanCard(plan, state, viewModel)
+                HomePlanCard(plan, state, viewModel) { deploymentViewModel.open(plan, state.departureMinute) }
             }
         }
 
