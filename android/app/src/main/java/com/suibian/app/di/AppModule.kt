@@ -2,10 +2,14 @@ package com.suibian.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.suibian.app.BuildConfig
 import com.suibian.app.background.AlarmScheduler
+import com.suibian.app.data.api.AccountApi
+import com.suibian.app.data.api.AccountSessions
 import com.suibian.app.data.api.SuibianApi
 import com.suibian.app.data.db.AppDatabase
 import com.suibian.app.data.db.MIGRATION_1_2
+import com.suibian.app.data.db.MIGRATION_2_3
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,17 +33,19 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun okHttp(): OkHttpClient = OkHttpClient.Builder()
+    fun okHttp(sessions: AccountSessions): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .addInterceptor(sessions.interceptor())
         .build()
 
     @Provides
     @Singleton
     fun retrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
-        // TODO(W1): 换成正式域名（HTTPS）。10.0.2.2 是模拟器访问宿主机的地址；
-        // 真机联调时用电脑局域网 IP，发布前必须删掉 usesCleartextTraffic（manifest）。
-        .baseUrl("http://10.0.2.2:8000/")
+        // 调试包可通过 suibianApiBaseUrl 指定 USB 转发、局域网或联调服务地址。
+        .baseUrl(BuildConfig.API_BASE_URL)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
@@ -50,9 +56,13 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun accountApi(retrofit: Retrofit): AccountApi = retrofit.create(AccountApi::class.java)
+
+    @Provides
+    @Singleton
     fun appDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "suibian.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

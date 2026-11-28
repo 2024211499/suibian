@@ -56,7 +56,7 @@ $env:MOCK = '1'
 ### Android
 
 1. 使用 JDK 17、Android SDK 35，打开 `android/`。项目自带 Gradle Wrapper。
-2. Windows 下把工作副本放在纯英文路径（例如 `D:\dev\suibian`），打开其中的 `android/`，运行 `.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug`。当前中文路径下即使跳过 AGP 的路径检查，测试运行器也出现了 `ClassNotFoundException`。在 Android Studio 的 Gradle 设置中选择 JDK 17 或 21。
+2. Windows 下把工作副本放在纯英文路径（例如 `D:\dev\suibian`），打开其中的 `android/`，运行 `.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug`。当前中文路径下即使跳过 AGP 的路径检查，测试运行器也出现了 `ClassNotFoundException`。在 Android Studio 的 Gradle 设置中选择 JDK 17 或 21。已建目录联接 `C:\suibian` → 本仓库（免管理员），本机构建走 `cd /c/suibian/android` 即可，完整命令见 `docs/resources.md` 第六节。
 3. Android 首页用于后续接入联调。模拟器服务地址为 `10.0.2.2:8000`，真机使用可访问的服务地址，Retrofit 配置位于 `di/AppModule.kt`。
 
 ### 开发基线

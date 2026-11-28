@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+}
+
+val debugApiBaseUrl = providers.gradleProperty("suibianApiBaseUrl").orElse("http://10.0.2.2:8000/").get()
+val debugApiUri = URI(debugApiBaseUrl)
+require(debugApiUri.scheme in setOf("http", "https") && debugApiUri.host != null &&
+    debugApiUri.rawUserInfo == null && debugApiUri.rawQuery == null && debugApiUri.rawFragment == null &&
+    debugApiBaseUrl.endsWith("/")) {
+    "suibianApiBaseUrl 必须是以 / 结尾的 HTTP(S) 地址"
 }
 
 android {
@@ -17,9 +27,13 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"$debugApiBaseUrl\"")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -33,6 +47,7 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }

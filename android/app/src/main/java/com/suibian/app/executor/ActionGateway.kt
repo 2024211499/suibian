@@ -23,6 +23,16 @@ data class Action(
     /** 同一次采纳方案产生的多个动作共用一个 batch_id，可整批撤销（9.3） */
     val batchId: String = "",
     val planId: String = "",
+    val autonomy: String? = null,
+    val calendarRecovery: Boolean = false,
+    val calendarAbsenceConfirmed: Boolean = false,
+)
+
+data class ExecutionReceipt(
+    val ok: Boolean,
+    val undoData: String = "",
+    val detail: String = "",
+    val needsReview: Boolean = false,
 )
 
 sealed interface SubmitResult {
@@ -35,8 +45,10 @@ sealed interface SubmitResult {
 interface Executor {
     val type: ActionType
     suspend fun run(action: Action): Boolean
+    suspend fun runWithReceipt(action: Action): ExecutionReceipt = ExecutionReceipt(run(action))
     /** undo=true 的动作支持撤销；一次采纳方案产生的动作同 batch 整批撤销。 */
     suspend fun undo(action: Action): Boolean = false
+    suspend fun undoWithReceipt(action: Action): ExecutionReceipt = ExecutionReceipt(undo(action))
 }
 
 class ActionGateway(
@@ -48,6 +60,9 @@ class ActionGateway(
     private val executedChecker: suspend (String, ActionType) -> Boolean = { _, _ -> false },
     /** 先写 confirmed 再回写 done/failed（12.2 第 5 步；生产实现持久化到 ActionLogDao） */
     private val logSink: suspend (Action, String) -> Unit = { _, _ -> },
+    private val finishSink: suspend (Action, ExecutionReceipt) -> Unit = { action, result ->
+        logSink(action, if (result.ok) "done" else "failed")
+    },
 ) {
     private val executionLock = Mutex()
 
@@ -57,11 +72,13 @@ class ActionGateway(
             ?: return SubmitResult.Rejected("rejected_unknown")
 
         // 2. 自主等级（技术文档 12.2：L0 只提醒，除 plan_update 外一律不执行；L1 给方案不执行）
-        when (autonomyProvider()) {
+        when (action.autonomy ?: autonomyProvider()) {
             "L0" -> if (type != ActionType.PLAN_UPDATE) {
                 return SubmitResult.Rejected("autonomy_L0_notify_only")
             }
             "L1" -> return SubmitResult.Rejected("autonomy_L1_manual")
+            "L2", "L3" -> Unit
+            else -> return SubmitResult.Rejected("invalid_autonomy")
             // L2（默认）与 L3 走分级确认；L3 对 auto 与可撤销的 calendar_write 免确认（P1）
         }
 
@@ -85,16 +102,21 @@ class ActionGateway(
             }
             val executor = executors[type] ?: return@withLock SubmitResult.Rejected("no_executor")
             logSink(action, "confirmed")
-            val ok = executor.run(action)
-            logSink(action, if (ok) "done" else "failed")
-            SubmitResult.Executed(ok)
+            val result = executor.runWithReceipt(action)
+            finishSink(action, result)
+            SubmitResult.Executed(result.ok)
         }
     }
 
-    suspend fun undo(action: Action): Boolean {
-        val type = ActionType.entries.firstOrNull { it == action.type } ?: return false
-        if (!type.undoable) return false
-        val executor = executors[type] ?: return false
-        return executor.undo(action)
+    suspend fun undo(action: Action): Boolean = undoWithReceipt(action).ok
+
+    suspend fun undoWithReceipt(action: Action): ExecutionReceipt {
+        val type = action.type
+        if (!type.undoable) return ExecutionReceipt(false, detail = "该动作无法撤销")
+        if (type.grant != null && !permissionChecker(type)) {
+            return ExecutionReceipt(false, detail = "请开启日历读写权限后重试撤销")
+        }
+        val executor = executors[type] ?: return ExecutionReceipt(false, detail = "该动作暂无法撤销")
+        return executionLock.withLock { executor.undoWithReceipt(action) }
     }
 }

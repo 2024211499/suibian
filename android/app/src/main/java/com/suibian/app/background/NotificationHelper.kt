@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -19,6 +18,13 @@ import com.suibian.app.MainActivity
 object NotificationHelper {
     const val CHANNEL_DEPART = "depart"
 
+    fun canShowDepart(context: Context): Boolean {
+        ensureChannels(context)
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+            manager.getNotificationChannel(CHANNEL_DEPART)?.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -27,17 +33,16 @@ object NotificationHelper {
                 CHANNEL_DEPART,
                 "该出门了",
                 NotificationManager.IMPORTANCE_HIGH,
-            ).apply { description = "按出发时刻计算的出门提醒" },
+            ).apply {
+                description = "按出发时刻计算的出门提醒"
+                // 出门提醒是强打断：默认单次短震不够，改成三段递进长震（用户在设置里改过振动则以用户为准）
+                vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 800)
+            },
         )
     }
 
-    fun notifyDepart(context: Context, planId: String, title: String, text: String) {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return  // 权限没给：10.5 的降级路径，首页常驻提示由调用方负责
-        }
+    fun notifyDepart(context: Context, planId: String, title: String, text: String): Boolean {
+        if (!canShowDepart(context)) return false
         val contentIntent = PendingIntent.getActivity(
             context,
             planId.hashCode(),
@@ -51,8 +56,14 @@ object NotificationHelper {
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // 声明为闹钟类：vivo/OriginOS 的"智能分类"会把无类别的通知判成 !priority 静默拦截
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .build()
-        NotificationManagerCompat.from(context).notify(planId.hashCode(), notification)
-        // TODO(W3): "出发了 / 晚 5 分钟" 按钮 —— 经透明 Activity 启动（Android 12 限制，8.4）
+        try {
+            NotificationManagerCompat.from(context).notify(planId.hashCode(), notification)
+        } catch (_: SecurityException) {
+            return false
+        }
+        return true
     }
 }

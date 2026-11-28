@@ -12,6 +12,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
+internal const val DEBUG_ALARM_PLAN_ID = "debug-plan"
+
 /**
  * Room 表（技术文档 2.5）。
  * v2 变更（审计收紧-1）：
@@ -63,6 +65,14 @@ interface PlanDao {
 
     @Query("SELECT * FROM plan WHERE isCurrent = 1 ORDER BY updatedAt DESC")
     fun observeAll(): Flow<List<PlanEntity>>
+
+    @Query(
+        "UPDATE plan SET status = :status, json = :json, updatedAt = :updatedAt " +
+            "WHERE planId = :planId AND version = :version AND isCurrent = 1 AND status = :previousStatus",
+    )
+    suspend fun updateDeploymentStatus(
+        planId: String, version: Int, previousStatus: String, status: String, json: String, updatedAt: Long,
+    ): Int
 }
 
 @Entity(tableName = "action_log")
@@ -90,6 +100,18 @@ interface ActionLogDao {
     @Query("SELECT * FROM action_log WHERE batchId = :batchId ORDER BY ts")
     suspend fun byBatch(batchId: String): List<ActionLogEntity>
 
+    @Query("SELECT * FROM action_log WHERE batchId = :batchId AND actionType = :actionType ORDER BY id DESC LIMIT 1")
+    suspend fun latestByAction(batchId: String, actionType: String): ActionLogEntity?
+
+    @Query("SELECT * FROM action_log WHERE planId = :planId ORDER BY ts DESC, id DESC")
+    fun observeForPlan(planId: String): Flow<List<ActionLogEntity>>
+
+    @Query("SELECT * FROM action_log WHERE planId = :planId ORDER BY id DESC")
+    suspend fun historyForPlan(planId: String): List<ActionLogEntity>
+
+    @Query("SELECT * FROM action_log WHERE id = :id")
+    suspend fun byId(id: Long): ActionLogEntity?
+
     /** 幂等检查：同 batch 同类型动作是否已经执行过（审计收紧-1：重复确认只产生一条系统日历事件） */
     @Query(
         "SELECT * FROM action_log WHERE batchId = :batchId AND actionType = :actionType " +
@@ -104,6 +126,7 @@ data class AlarmEntity(
     /** depart（出门提醒）/ tick（监控唤醒） */
     val kind: String,
     val triggerAt: Long,
+    val planVersion: Int? = null,
 )
 
 @Dao
@@ -114,25 +137,53 @@ interface AlarmDao {
     @Query("DELETE FROM alarm WHERE planId = :planId")
     suspend fun deleteByPlanId(planId: String)
 
+    @Query("DELETE FROM alarm WHERE planId = :planId AND kind = :kind")
+    suspend fun deleteByKind(planId: String, kind: String)
+
+    @Query("SELECT * FROM alarm WHERE planId = :planId AND kind = :kind")
+    suspend fun byKind(planId: String, kind: String): AlarmEntity?
+
     @Query(
         "DELETE FROM alarm WHERE planId = :planId AND kind = :kind " +
-            "AND triggerAt = :triggerAt AND triggerAt <= :now",
+            "AND triggerAt = :triggerAt AND triggerAt <= :now AND planVersion IS :planVersion " +
+            "AND ((planVersion IS NULL AND planId = '$DEBUG_ALARM_PLAN_ID') OR EXISTS " +
+            "(SELECT 1 FROM plan WHERE plan.planId = alarm.planId " +
+            "AND plan.version = alarm.planVersion AND isCurrent = 1))",
     )
-    suspend fun consume(planId: String, kind: String, triggerAt: Long, now: Long): Int
+    suspend fun consume(planId: String, kind: String, triggerAt: Long, now: Long, planVersion: Int?): Int
 
-    @Query("SELECT * FROM alarm WHERE triggerAt > :now")
+    @Query(
+        "SELECT * FROM alarm WHERE triggerAt > :now AND ((planVersion IS NULL AND planId = '$DEBUG_ALARM_PLAN_ID') OR EXISTS " +
+            "(SELECT 1 FROM plan WHERE plan.planId = alarm.planId AND plan.version = alarm.planVersion AND isCurrent = 1))",
+    )
     suspend fun pending(now: Long): List<AlarmEntity>
+
+    @Query("SELECT * FROM alarm WHERE planId = :planId AND planVersion IS NULL AND planId != '$DEBUG_ALARM_PLAN_ID'")
+    suspend fun legacyForPlan(planId: String): List<AlarmEntity>
+
+    @Query(
+        "SELECT * FROM alarm WHERE kind = 'depart' AND triggerAt <= :cutoff AND planVersion IS NOT NULL " +
+            "AND EXISTS (SELECT 1 FROM plan WHERE plan.planId = alarm.planId " +
+            "AND plan.version = alarm.planVersion AND isCurrent = 1)",
+    )
+    suspend fun overdueDepartures(cutoff: Long): List<AlarmEntity>
 }
 
 @Database(
     entities = [PlanEntity::class, ActionLogEntity::class, AlarmEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun planDao(): PlanDao
     abstract fun actionLogDao(): ActionLogDao
     abstract fun alarmDao(): AlarmDao
+}
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE alarm ADD COLUMN planVersion INTEGER")
+    }
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
