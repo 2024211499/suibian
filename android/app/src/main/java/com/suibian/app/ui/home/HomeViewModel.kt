@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.suibian.app.background.AlarmScheduler
 import com.suibian.app.data.api.SuibianApi
+import com.suibian.app.data.api.rateLimitMessage
 import com.suibian.app.data.db.AppDatabase
 import com.suibian.app.data.db.DEBUG_ALARM_PLAN_ID
 import com.suibian.app.data.db.PlanEntity
@@ -199,7 +200,14 @@ class HomeViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: HttpException) {
-                _state.update { it.copy(notice = "$failure（HTTP ${e.code()}）") }
+                val notice = when (e.code()) {
+                    401 -> "请登录随变账号后重试"
+                    403 -> "当前账号无权限"
+                    422 -> "$failure，请核对计划输入"
+                    429 -> e.rateLimitMessage()
+                    else -> "$failure（HTTP ${e.code()}）"
+                }
+                _state.update { it.copy(notice = notice) }
             } catch (_: Exception) {
                 _state.update { it.copy(notice = "$failure，请重试。") }
             } finally {

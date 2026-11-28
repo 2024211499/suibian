@@ -38,7 +38,11 @@ import com.suibian.app.deployment.DeploymentScreen
 import com.suibian.app.deployment.DeploymentViewModel
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: DeploymentViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
+    deploymentViewModel: DeploymentViewModel = hiltViewModel(),
+    accountViewModel: AccountViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val message by viewModel.message.collectAsState()
     val state by viewModel.state.collectAsState()
@@ -74,6 +78,7 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel(), deploymentViewModel: 
             Text(if (state.healthLoading) "正在检查服务…" else state.health.orEmpty())
             TextButton(onClick = viewModel::refreshHealth, enabled = !state.healthLoading) { Text("刷新") }
         }
+        AccountPanel(accountViewModel)
 
         OutlinedTextField(
             value = input,

@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.suibian.app.BuildConfig
 import com.suibian.app.background.AlarmScheduler
+import com.suibian.app.data.api.AccountApi
+import com.suibian.app.data.api.AccountSessions
 import com.suibian.app.data.api.SuibianApi
 import com.suibian.app.data.db.AppDatabase
 import com.suibian.app.data.db.MIGRATION_1_2
@@ -31,9 +33,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun okHttp(): OkHttpClient = OkHttpClient.Builder()
+    fun okHttp(sessions: AccountSessions): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(25, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .addInterceptor(sessions.interceptor())
         .build()
 
     @Provides
@@ -48,6 +53,10 @@ object AppModule {
     @Provides
     @Singleton
     fun suibianApi(retrofit: Retrofit): SuibianApi = retrofit.create(SuibianApi::class.java)
+
+    @Provides
+    @Singleton
+    fun accountApi(retrofit: Retrofit): AccountApi = retrofit.create(AccountApi::class.java)
 
     @Provides
     @Singleton
