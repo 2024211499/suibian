@@ -57,6 +57,8 @@ $env:MOCK = '1'
 
 当前资源、存储位置和待核验额度见[乙方资源记录](docs/resources.md)。
 
+甲方接入请先读[甲方联调交接文档](docs/甲方联调交接.md)，包含当前分支、HTTPS 地址、登录、业务请求构造、空值与错误处理及联合验收清单。
+
 ### Android
 
 1. 使用 JDK 17、Android SDK 35，打开 `android/`。项目自带 Gradle Wrapper。
