@@ -50,14 +50,16 @@ data class HomePlan private constructor(val graph: JsonObject, val summary: Plan
 @Serializable
 data class PlanSummary(
     @SerialName("plan_id") val id: String,
-    val version: Int,
-    val status: String,
-    val title: String,
-    val date: String,
+    val version: Int = 1,
+    val status: String = "DRAFT",
+    val title: String? = null,
+    val date: String? = null,
     val nodes: List<PlanStop>,
     val edges: List<PlanLeg>,
     @SerialName("p_target") val targetProbability: Double? = null,
-)
+) {
+    val displayTitle: String get() = title?.takeIf { it.isNotBlank() } ?: "未命名计划"
+}
 
 @Serializable
 data class PlanStop(val id: String, val name: String, val kind: String? = null, val window: StopWindow? = null)

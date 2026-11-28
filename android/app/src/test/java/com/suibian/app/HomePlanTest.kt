@@ -17,6 +17,25 @@ class HomePlanTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Test
+    fun `incomplete drafts keep null and missing fields and get local defaults`() {
+        val drafts = listOf(
+            """{"plan_id":"draft","title":null,"date":null,"nodes":[],"edges":[],"future_field":{"keep":true}}""",
+            """{"plan_id":"draft","nodes":[],"edges":[],"future_field":{"keep":true}}""",
+        )
+        drafts.forEach { input ->
+            val original = objectFrom(input)
+            val draft = HomePlan.from(original, json)
+            val saved = draft.toEntity(updatedAt = 10)
+            assertEquals("未命名计划", draft.summary.displayTitle)
+            assertNull(draft.summary.date)
+            assertEquals(1, saved.version)
+            assertEquals("DRAFT", saved.status)
+            assertEquals(original, objectFrom(saved.json))
+            assertEquals(original, HomePlan.from(objectFrom(saved.json), json).inspectionRequest(420)["plan"])
+        }
+    }
+
+    @Test
     fun `plan retains complete graph and server version when saved and inspected`() {
         val graph = objectFrom(
             """{

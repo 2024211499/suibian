@@ -57,8 +57,9 @@ internal fun HomePlanCard(plan: HomePlan, state: HomeState, viewModel: HomeViewM
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(plan.summary.title, style = MaterialTheme.typography.titleLarge)
-            Text("${plan.summary.date} · 版本 ${plan.summary.version}", style = MaterialTheme.typography.bodySmall)
+            Text(plan.summary.displayTitle, style = MaterialTheme.typography.titleLarge)
+            val date = plan.summary.date ?: "日期待补充"
+            Text("$date · 版本 ${plan.summary.version}", style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "收起" else "展开") }
                 TextButton(onClick = viewModel::closePlan, enabled = !state.planBusy) { Text("关闭预览") }

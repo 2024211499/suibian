@@ -49,7 +49,7 @@ class HomeViewModel @Inject constructor(
         .map { plans ->
             plans.map { entity ->
                 val title = runCatching {
-                    HomePlan.from(json.parseToJsonElement(entity.json).jsonObject, json).summary.title
+                    HomePlan.from(json.parseToJsonElement(entity.json).jsonObject, json).summary.displayTitle
                 }.getOrDefault(entity.planId)
                 SavedHomePlan(entity, title)
             }
