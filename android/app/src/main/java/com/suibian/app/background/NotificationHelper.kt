@@ -51,6 +51,8 @@ object NotificationHelper {
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // 声明为闹钟类：vivo/OriginOS 的"智能分类"会把无类别的通知判成 !priority 静默拦截
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .build()
         NotificationManagerCompat.from(context).notify(planId.hashCode(), notification)
         // TODO(W3): "出发了 / 晚 5 分钟" 按钮 —— 经透明 Activity 启动（Android 12 限制，8.4）

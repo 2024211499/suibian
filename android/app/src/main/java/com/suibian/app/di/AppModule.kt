@@ -2,6 +2,7 @@ package com.suibian.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.suibian.app.BuildConfig
 import com.suibian.app.background.AlarmScheduler
 import com.suibian.app.data.api.SuibianApi
 import com.suibian.app.data.db.AppDatabase
@@ -37,9 +38,8 @@ object AppModule {
     @Provides
     @Singleton
     fun retrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
-        // TODO(W1): 换成正式域名（HTTPS）。10.0.2.2 是模拟器访问宿主机的地址；
-        // 真机联调时用电脑局域网 IP，发布前必须删掉 usesCleartextTraffic（manifest）。
-        .baseUrl("http://10.0.2.2:8000/")
+        // 调试包可通过 suibianApiBaseUrl 指定 USB 转发、局域网或联调服务地址。
+        .baseUrl(BuildConfig.API_BASE_URL)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()

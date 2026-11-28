@@ -3,10 +3,13 @@ package com.suibian.app.background
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
+import com.suibian.app.BuildConfig
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -35,6 +38,10 @@ class AlarmReceiver : BroadcastReceiver() {
                         "该出门了",
                         "已到计划的出门提醒时间",
                     )
+                } else if (BuildConfig.DEBUG) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "tick 已触发", Toast.LENGTH_SHORT).show()
+                    }
                 }
                 // TODO(W2): 调 POST /v1/tick，按返回结果决定是否提醒。
             } finally {
