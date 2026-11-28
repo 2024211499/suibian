@@ -1,0 +1,761 @@
+{
+  "recorded_at": "2026-11-28T13:01:07.130393+00:00",
+  "mode": "live_llm_only",
+  "provider": "qwen",
+  "model": "qwen-plus",
+  "upstream_attempts": 11,
+  "upstream_attempt_limit": 20,
+  "prompt_sha256": "fa9b0aa95801176654e48e8529d04e7673f6dbe0d369bd38c6078a17c7b4f8f5",
+  "schema_sha256": "6e1c029e2d1c0bff906e4b8a47a0e8599bce9bea15730672a406b128276e68b0",
+  "dataset_sha256": "82507ecf531b5d25fe2358b1667fa98502f720027ac5aeea3dfa280fdb555494",
+  "summary": {
+    "synthetic": {
+      "samples": 10,
+      "schema_valid": 10,
+      "failed_calls": 0,
+      "passed_fields": 58,
+      "total_fields": 59,
+      "field_accuracy": 0.9830508474576272,
+      "fields": {
+        "origin": {
+          "passed": 10,
+          "total": 10
+        },
+        "destination": {
+          "passed": 10,
+          "total": 10
+        },
+        "date": {
+          "passed": 10,
+          "total": 10
+        },
+        "time": {
+          "passed": 9,
+          "total": 9
+        },
+        "mode": {
+          "passed": 10,
+          "total": 10
+        },
+        "questions": {
+          "passed": 9,
+          "total": 10
+        }
+      }
+    },
+    "human": {
+      "samples": 1,
+      "schema_valid": 1,
+      "failed_calls": 0,
+      "passed_fields": 8,
+      "total_fields": 8,
+      "field_accuracy": 1.0,
+      "fields": {
+        "origin": {
+          "passed": 1,
+          "total": 1
+        },
+        "unsupported": {
+          "passed": 1,
+          "total": 1
+        },
+        "questions": {
+          "passed": 1,
+          "total": 1
+        },
+        "meeting_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "flight_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "arrival_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "alternate_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "destination": {
+          "passed": 1,
+          "total": 1
+        }
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "s01",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "明天",
+        "origin": {
+          "text": "家",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "明天上午9点前到市图书馆",
+            "category": "sight",
+            "keyword": "市图书馆"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "步行"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.188
+    },
+    {
+      "id": "s02",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "后天",
+        "origin": {
+          "text": "公司",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "后天下午三点在市博物馆参观",
+            "category": "exhibit",
+            "keyword": "市博物馆"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "坐公交"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.062
+    },
+    {
+      "id": "s03",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "次日",
+        "origin": {
+          "text": "学生公寓",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "次日早上八点前到第三教学楼",
+            "category": "class",
+            "keyword": "第三教学楼"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "骑自行车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.157
+    },
+    {
+      "id": "s04",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "本周日",
+        "origin": {
+          "text": "酒店",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "本周日晚上七点在剧院入场",
+            "category": "exhibit",
+            "keyword": "剧院"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "打车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.062
+    },
+    {
+      "id": "s05",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date": "2026-12-02",
+        "origin": {
+          "text": "火车站",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "2026年12月2日上午10点前到会展中心",
+            "category": "sight",
+            "keyword": "会展中心"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "开车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.485
+    },
+    {
+      "id": "s06",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "明天",
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "明天下午2点前到科技馆",
+            "category": "sight",
+            "keyword": "科技馆"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "步行"
+          }
+        ],
+        "questions": [
+          "请补充从哪里出发。"
+        ],
+        "unsupported": []
+      },
+      "elapsed_s": 1.796
+    },
+    {
+      "id": "s07",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": false
+        }
+      ],
+      "passed_fields": 4,
+      "total_fields": 5,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "明早",
+        "origin": {
+          "text": "家",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "明早从家出发骑车到游泳馆。",
+            "category": "sight",
+            "keyword": "游泳馆"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "骑车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 2.657
+    },
+    {
+      "id": "s08",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "明天",
+        "origin": {
+          "text": "家",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "明天八点去医院",
+            "category": "sight",
+            "keyword": "医院"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "坐公交"
+          }
+        ],
+        "questions": [
+          "八点是出发时间还是最晚到达时间？"
+        ],
+        "unsupported": []
+      },
+      "elapsed_s": 2.062
+    },
+    {
+      "id": "s09",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "昨天",
+        "origin": {
+          "text": "公司",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "昨天下午4点前到培训中心",
+            "category": "class",
+            "keyword": "培训中心"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "坐地铁"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.016
+    },
+    {
+      "id": "s10",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "今天",
+        "origin": {
+          "text": "小区",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "今天上午十一点半前到活动中心",
+            "category": "other",
+            "keyword": "活动中心"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "骑电动车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.14
+    },
+    {
+      "id": "h01",
+      "source": "human",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "unsupported",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        },
+        {
+          "field": "meeting_time",
+          "passed": true
+        },
+        {
+          "field": "flight_time",
+          "passed": true
+        },
+        {
+          "field": "arrival_time",
+          "passed": true
+        },
+        {
+          "field": "alternate_time",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        }
+      ],
+      "passed_fields": 8,
+      "total_fields": 8,
+      "error": null,
+      "intent": {
+        "date_fuzzy": "今天",
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "今天下午3点见那个导演，要是顺利的话晚上就能坐上9点的飞机（此处航班数据），明天早五就到洛杉矶了；要是没谈妥，那就下午7点见另外一个。",
+            "category": "other",
+            "keyword": null
+          }
+        ],
+        "prefs": [],
+        "questions": [
+          "请明确‘那个导演’和‘另外一个’的会面地点。",
+          "请确认是否需要安排往返交通？"
+        ],
+        "unsupported": [
+          "跨城行程（含国际航班）",
+          "多天行程（涉及‘明天’）",
+          "条件分支行程（‘要是顺利的话…否则…’）"
+        ],
+        "city": null,
+        "city_adcode": null,
+        "date": null,
+        "origin": null,
+        "return_by": null,
+        "return_by_fuzzy": null,
+        "budget_yuan": null,
+        "budget_tendency": null
+      },
+      "elapsed_s": 5.329
+    }
+  ]
+}

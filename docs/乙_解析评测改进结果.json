@@ -1,0 +1,421 @@
+{
+  "recorded_at": "2026-11-28T12:58:23.847256+00:00",
+  "mode": "live_llm_only",
+  "provider": "qwen",
+  "model": "qwen-plus",
+  "upstream_attempts": 5,
+  "upstream_attempt_limit": 20,
+  "prompt_sha256": "fa9b0aa95801176654e48e8529d04e7673f6dbe0d369bd38c6078a17c7b4f8f5",
+  "schema_sha256": "6e1c029e2d1c0bff906e4b8a47a0e8599bce9bea15730672a406b128276e68b0",
+  "dataset_sha256": "88f3068df09b629c42971a302597a853c255f8089c237d6c7b3a7b93880fca75",
+  "summary": {
+    "synthetic": {
+      "samples": 4,
+      "schema_valid": 4,
+      "failed_calls": 0,
+      "passed_fields": 24,
+      "total_fields": 24,
+      "field_accuracy": 1.0,
+      "fields": {
+        "origin": {
+          "passed": 4,
+          "total": 4
+        },
+        "destination": {
+          "passed": 4,
+          "total": 4
+        },
+        "date": {
+          "passed": 4,
+          "total": 4
+        },
+        "time": {
+          "passed": 4,
+          "total": 4
+        },
+        "mode": {
+          "passed": 4,
+          "total": 4
+        },
+        "questions": {
+          "passed": 4,
+          "total": 4
+        }
+      }
+    },
+    "human": {
+      "samples": 1,
+      "schema_valid": 1,
+      "failed_calls": 0,
+      "passed_fields": 8,
+      "total_fields": 8,
+      "field_accuracy": 1.0,
+      "fields": {
+        "origin": {
+          "passed": 1,
+          "total": 1
+        },
+        "unsupported": {
+          "passed": 1,
+          "total": 1
+        },
+        "questions": {
+          "passed": 1,
+          "total": 1
+        },
+        "meeting_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "flight_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "arrival_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "alternate_time": {
+          "passed": 1,
+          "total": 1
+        },
+        "destination": {
+          "passed": 1,
+          "total": 1
+        }
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "s01",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "明天",
+        "origin": {
+          "text": "家",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "明天上午9点前到市图书馆",
+            "category": "sight",
+            "keyword": "市图书馆"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "步行"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 2.313
+    },
+    {
+      "id": "s03",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "次日",
+        "origin": {
+          "text": "学生公寓",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "次日早上八点前到第三教学楼",
+            "category": "class",
+            "keyword": "第三教学楼"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "骑自行车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.14
+    },
+    {
+      "id": "s09",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "昨天",
+        "origin": {
+          "text": "公司",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "昨天下午4点前到培训中心",
+            "category": "class",
+            "keyword": "培训中心"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "坐地铁"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.0
+    },
+    {
+      "id": "s10",
+      "source": "synthetic",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        },
+        {
+          "field": "date",
+          "passed": true
+        },
+        {
+          "field": "time",
+          "passed": true
+        },
+        {
+          "field": "mode",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        }
+      ],
+      "passed_fields": 6,
+      "total_fields": 6,
+      "error": null,
+      "intent": {
+        "city_adcode": "330100",
+        "date_fuzzy": "今天",
+        "origin": {
+          "text": "小区",
+          "resolved": false
+        },
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "今天上午十一点半前到活动中心",
+            "category": "other",
+            "keyword": "活动中心"
+          }
+        ],
+        "prefs": [
+          {
+            "text": "骑电动车"
+          }
+        ],
+        "questions": [],
+        "unsupported": []
+      },
+      "elapsed_s": 3.032
+    },
+    {
+      "id": "h01",
+      "source": "human",
+      "schema_valid": true,
+      "checks": [
+        {
+          "field": "origin",
+          "passed": true
+        },
+        {
+          "field": "unsupported",
+          "passed": true
+        },
+        {
+          "field": "questions",
+          "passed": true
+        },
+        {
+          "field": "meeting_time",
+          "passed": true
+        },
+        {
+          "field": "flight_time",
+          "passed": true
+        },
+        {
+          "field": "arrival_time",
+          "passed": true
+        },
+        {
+          "field": "alternate_time",
+          "passed": true
+        },
+        {
+          "field": "destination",
+          "passed": true
+        }
+      ],
+      "passed_fields": 8,
+      "total_fields": 8,
+      "error": null,
+      "intent": {
+        "date_fuzzy": "今天",
+        "members": [
+          "我"
+        ],
+        "must": [
+          {
+            "text": "今天下午3点见那个导演",
+            "category": "other",
+            "keyword": null
+          },
+          {
+            "text": "要是顺利的话晚上就能坐上9点的飞机（此处航班数据）",
+            "category": "other",
+            "keyword": null
+          },
+          {
+            "text": "明天早五就到洛杉矶了",
+            "category": "other",
+            "keyword": null
+          },
+          {
+            "text": "要是没谈妥，那就下午7点见另外一个",
+            "category": "other",
+            "keyword": null
+          }
+        ],
+        "prefs": [],
+        "questions": [
+          "请补充今天下午3点见面的具体地点。",
+          "请补充下午7点见面的具体地点。"
+        ],
+        "unsupported": [
+          "跨城行程",
+          "多天行程",
+          "含航班出行",
+          "条件分支行程（顺利/没谈妥）"
+        ],
+        "city": null,
+        "city_adcode": null,
+        "date": null,
+        "origin": null,
+        "return_by": null,
+        "return_by_fuzzy": null,
+        "budget_yuan": null,
+        "budget_tendency": null
+      },
+      "elapsed_s": 6.468
+    }
+  ]
+}

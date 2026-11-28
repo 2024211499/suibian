@@ -306,3 +306,27 @@ def test_unsourced_model_city_is_not_used_for_map_queries(client, upstream, monk
     request = {key: value for key, value in REQUEST.items() if key != "city_adcode"}
 
     assert_no_plan(client.post("/v1/parse", json=request))
+
+
+@pytest.mark.parametrize("with_questions,with_unsupported", [(True, True), (False, True), (False, False)])
+def test_conditional_flight_input_preserves_information_without_creating_route(
+    client, upstream, monkeypatch, with_questions, with_unsupported,
+):
+    intent, _ = upstream
+    activities = [
+        "今天下午3点见那个导演",
+        "要是顺利的话晚上就能坐上9点的飞机（此处航班数据）",
+        "明天早五就到洛杉矶了",
+        "要是没谈妥，那就下午7点见另外一个",
+    ]
+    intent["origin"] = None
+    intent["must"] = [{"text": text, "category": "other", "keyword": None} for text in activities]
+    intent["questions"] = ["请补充会面地点。"] if with_questions else []
+    intent["unsupported"] = ["条件分支、跨城、多天行程"] if with_unsupported else []
+    expected = copy.deepcopy(intent)
+    monkeypatch.setattr(amap, "geocode", unexpected_call)
+    monkeypatch.setattr(amap, "route", unexpected_call)
+
+    result = assert_no_plan(client.post("/v1/parse", json={"text": "；".join(activities), "now": NOW}))
+
+    assert result["intent"] == expected
