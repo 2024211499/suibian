@@ -24,9 +24,16 @@ data class Action(
     val batchId: String = "",
     val planId: String = "",
     val autonomy: String? = null,
+    val calendarRecovery: Boolean = false,
+    val calendarAbsenceConfirmed: Boolean = false,
 )
 
-data class ExecutionReceipt(val ok: Boolean, val undoData: String = "", val detail: String = "")
+data class ExecutionReceipt(
+    val ok: Boolean,
+    val undoData: String = "",
+    val detail: String = "",
+    val needsReview: Boolean = false,
+)
 
 sealed interface SubmitResult {
     data class Executed(val ok: Boolean) : SubmitResult

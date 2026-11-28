@@ -11,6 +11,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalTime
@@ -24,6 +25,7 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
     private val _history = MutableStateFlow<DeploymentHistory?>(null)
     val history = _history.asStateFlow()
     private var historyObserver: Job? = null
+    private var editorRecordObserver: Job? = null
 
     fun open(plan: HomePlan, trialDeparture: Int) {
         val summary = plan.summary
@@ -45,8 +47,11 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
                 val calendars = if (allowed) deployment.writableCalendars() else emptyList()
                 _editor.value = editor.copy(
                     form = form, records = rows, calendars = calendars, calendarPermission = allowed,
-                    busy = false,
+                    busy = false, message = if (deployment.hasLegacyReminder(editor.planId)) {
+                        "旧提醒的版本无法校验，请重新设置"
+                    } else null,
                 )
+                observeEditorRecords(editor.planId, editor.version)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -56,7 +61,26 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
     }
 
     fun close() {
-        if (_editor.value?.busy != true) _editor.value = null
+        if (_editor.value?.busy != true) {
+            editorRecordObserver?.cancel()
+            editorRecordObserver = null
+            _editor.value = null
+        }
+    }
+
+    private fun observeEditorRecords(planId: String, version: Int) {
+        editorRecordObserver?.cancel()
+        editorRecordObserver = viewModelScope.launch {
+            deployment.observeHistory(planId).catch {
+                _editor.update { it?.copy(message = "暂时无法刷新动作结果，请重开部署页") }
+            }.collect { rows ->
+                val current = rows.filter { it.batchId == "deployment:$version:$planId" }
+                    .groupBy { it.actionType }.values.map { history -> history.maxBy { it.id } }
+                _editor.update { state ->
+                    if (state?.planId == planId && state.version == version) state.copy(records = current) else state
+                }
+            }
+        }
     }
 
     fun openEditorHistory() {
@@ -104,7 +128,7 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
         _history.value = history.copy(busy = true, message = null)
         viewModelScope.launch {
             val detail = try {
-                deployment.undoCalendar(history.planId, recordId).detail
+                deployment.undoCalendar(history.planId, history.version, recordId).detail
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -135,12 +159,12 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
         }
     }
 
-    fun preparePreview(only: ActionType? = null) {
+    fun preparePreview(only: ActionType? = null, calendarAbsenceConfirmed: Boolean = false) {
         val current = _editor.value ?: return
         if (current.busy) return
         val preview = runCatching { current.form.toSpec(current.planId, current.version, System.currentTimeMillis()) }
         _editor.value = preview.fold(
-            onSuccess = { current.copy(preview = DeploymentPreview(it, only), message = null) },
+            onSuccess = { current.copy(preview = DeploymentPreview(it, only, calendarAbsenceConfirmed), message = null) },
             onFailure = { current.copy(message = it.message ?: "请检查日期和时段") },
         )
     }
@@ -154,7 +178,7 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
         _editor.value = current.copy(busy = true, preview = null, message = null)
         viewModelScope.launch {
             try {
-                val rows = deployment.confirm(preview.spec, preview.only)
+                val rows = deployment.confirm(preview.spec, preview.only, preview.calendarAbsenceConfirmed)
                 _editor.value = current.copy(busy = false, preview = null, records = rows, message = null)
             } catch (e: CancellationException) {
                 throw e
@@ -182,7 +206,7 @@ data class DeploymentEditor(
     val message: String? = null,
 )
 
-data class DeploymentPreview(val spec: DeploymentSpec, val only: ActionType?)
+data class DeploymentPreview(val spec: DeploymentSpec, val only: ActionType?, val calendarAbsenceConfirmed: Boolean)
 
 data class DeploymentHistory(
     val planId: String,

@@ -57,10 +57,52 @@ class CalendarEventWriterTest {
         assertEquals(0, store.deletions)
     }
 
+    @Test
+    fun `ambiguous recovery never inserts until absence is confirmed`() {
+        assertTrue(writer.write(draft).ok)
+        store.event = requireNotNull(store.event).copy(description = null)
+        val recovery = writer.write(draft, recovering = true)
+        assertFalse(recovery.ok)
+        assertTrue(recovery.needsReview)
+        assertEquals(1, store.insertions)
+        store.event = null
+        assertTrue(writer.write(draft, recovering = true, absenceConfirmed = true).ok)
+        assertEquals(2, store.insertions)
+    }
+
+    @Test
+    fun `recovery does not adopt an externally edited availability`() {
+        assertTrue(writer.write(draft).ok)
+        store.event = requireNotNull(store.event).copy(protectedColumns = mapOf("availability" to "1"))
+        val recovery = writer.write(draft, recovering = true)
+        assertFalse(recovery.ok)
+        assertTrue(recovery.needsReview)
+        assertEquals(1, store.insertions)
+    }
+
+    @Test
+    fun `undo reports a relocated calendar event instead of success`() {
+        val receipt = writer.write(draft)
+        store.event = requireNotNull(store.event).copy(eventId = 9L)
+        assertFalse(writer.undo(receipt.undoData, marker).ok)
+        assertEquals(0, store.deletions)
+    }
+
+    @Test
+    fun `an insert that throws after writing can still be recovered`() {
+        store.failAfterInsert = true
+        val interrupted = writer.write(draft)
+        assertFalse(interrupted.ok)
+        assertTrue(interrupted.needsReview)
+        assertTrue(writer.write(draft, recovering = true).ok)
+        assertEquals(1, store.insertions)
+    }
+
     private class FakeStore : CalendarEventStore {
         var event: CalendarEventSnapshot? = null
         var insertions = 0
         var deletions = 0
+        var failAfterInsert = false
 
         override fun withMarker(marker: String) = listOfNotNull(event).filter {
             it.description.orEmpty().lineSequence().contains(marker)
@@ -74,6 +116,7 @@ class CalendarEventWriterTest {
                 8, draft.calendarId, draft.title, draft.startAt, draft.endAt,
                 draft.zoneId, draft.marker, emptyMap(),
             )
+            if (failAfterInsert) error("interrupted after insert")
             return 8
         }
 

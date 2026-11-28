@@ -12,6 +12,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
+internal const val DEBUG_ALARM_PLAN_ID = "debug-plan"
+
 /**
  * Room 表（技术文档 2.5）。
  * v2 变更（审计收紧-1）：
@@ -104,6 +106,9 @@ interface ActionLogDao {
     @Query("SELECT * FROM action_log WHERE planId = :planId ORDER BY ts DESC, id DESC")
     fun observeForPlan(planId: String): Flow<List<ActionLogEntity>>
 
+    @Query("SELECT * FROM action_log WHERE planId = :planId ORDER BY id DESC")
+    suspend fun historyForPlan(planId: String): List<ActionLogEntity>
+
     @Query("SELECT * FROM action_log WHERE id = :id")
     suspend fun byId(id: Long): ActionLogEntity?
 
@@ -141,16 +146,27 @@ interface AlarmDao {
     @Query(
         "DELETE FROM alarm WHERE planId = :planId AND kind = :kind " +
             "AND triggerAt = :triggerAt AND triggerAt <= :now AND planVersion IS :planVersion " +
-            "AND (planVersion IS NULL OR EXISTS (SELECT 1 FROM plan WHERE plan.planId = alarm.planId " +
+            "AND ((planVersion IS NULL AND planId = '$DEBUG_ALARM_PLAN_ID') OR EXISTS " +
+            "(SELECT 1 FROM plan WHERE plan.planId = alarm.planId " +
             "AND plan.version = alarm.planVersion AND isCurrent = 1))",
     )
     suspend fun consume(planId: String, kind: String, triggerAt: Long, now: Long, planVersion: Int?): Int
 
     @Query(
-        "SELECT * FROM alarm WHERE triggerAt > :now AND (planVersion IS NULL OR EXISTS " +
+        "SELECT * FROM alarm WHERE triggerAt > :now AND ((planVersion IS NULL AND planId = '$DEBUG_ALARM_PLAN_ID') OR EXISTS " +
             "(SELECT 1 FROM plan WHERE plan.planId = alarm.planId AND plan.version = alarm.planVersion AND isCurrent = 1))",
     )
     suspend fun pending(now: Long): List<AlarmEntity>
+
+    @Query("SELECT * FROM alarm WHERE planId = :planId AND planVersion IS NULL AND planId != '$DEBUG_ALARM_PLAN_ID'")
+    suspend fun legacyForPlan(planId: String): List<AlarmEntity>
+
+    @Query(
+        "SELECT * FROM alarm WHERE kind = 'depart' AND triggerAt <= :cutoff AND planVersion IS NOT NULL " +
+            "AND EXISTS (SELECT 1 FROM plan WHERE plan.planId = alarm.planId " +
+            "AND plan.version = alarm.planVersion AND isCurrent = 1)",
+    )
+    suspend fun overdueDepartures(cutoff: Long): List<AlarmEntity>
 }
 
 @Database(

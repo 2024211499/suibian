@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.room.withTransaction
+import com.suibian.app.background.AlarmScheduler
 import com.suibian.app.data.db.ActionLogEntity
 import com.suibian.app.data.db.AppDatabase
 import com.suibian.app.data.db.PlanEntity
+import com.suibian.app.data.db.PlanOperationLock
 import com.suibian.app.domain.PlanEvent
 import com.suibian.app.domain.PlanStateMachine
 import com.suibian.app.domain.PlanStatus
@@ -19,7 +21,6 @@ import com.suibian.app.executor.ExecutionReceipt
 import com.suibian.app.executor.SubmitResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -38,17 +39,28 @@ class PlanDeployment @Inject constructor(
     private val calendar: CalendarWriterExecutor,
     reminder: DepartReminderExecutor,
     private val json: Json,
+    private val planOperations: PlanOperationLock,
 ) {
     private val plans = database.planDao()
     private val log = database.actionLogDao()
-    private val lock = Mutex()
     private val gateway = ActionGateway(
         executors = listOf(calendar, reminder).associateBy { it.type },
         autonomyProvider = { "L0" },
         permissionChecker = { type -> type != ActionType.CALENDAR_WRITE || canAccessCalendar() },
         executedChecker = { batchId, type -> log.latestByAction(batchId, type.name)?.decision == "done" },
         logSink = { action, decision -> update(action, decision) },
-        finishSink = { action, receipt -> update(action, if (receipt.ok) "done" else "failed", receipt) },
+        finishSink = { action, receipt ->
+            database.withTransaction {
+                update(action, when {
+                    receipt.ok -> "done"
+                    receipt.needsReview || action.calendarRecovery -> "calendar_review"
+                    else -> "failed"
+                }, receipt)
+                if (receipt.ok && action.type == ActionType.CALENDAR_WRITE) supersedeCalendarHistory(action)
+                val rows = latestActions(action.batchId)
+                recordedSpec(rows)?.let { finalizeIfComplete(it, rows) }
+            }
+        },
     )
 
     fun canAccessCalendar(): Boolean = listOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)
@@ -56,8 +68,24 @@ class PlanDeployment @Inject constructor(
 
     suspend fun writableCalendars() = calendar.writableCalendars()
 
-    suspend fun actions(planId: String, version: Int): List<ActionLogEntity> =
-        latestActions("deployment:$version:$planId")
+    suspend fun hasLegacyReminder(planId: String): Boolean =
+        database.alarmDao().legacyForPlan(planId).any { it.kind == AlarmScheduler.KIND_DEPART }
+
+    suspend fun actions(planId: String, version: Int): List<ActionLogEntity> = planOperations.forPlan(planId).withLock {
+        database.withTransaction {
+            val batchId = "deployment:$version:$planId"
+            val existingReminder = log.latestByAction(batchId, ActionType.ALARM_SET.name)
+            if (existingReminder?.decision == "done" && hasLegacyReminder(planId)) {
+                log.insert(existingReminder.copy(
+                    decision = "failed",
+                    evidenceJson = buildJsonObject { put("detail", "旧提醒的版本无法校验，请重新设置") }.toString(),
+                ))
+            }
+            val rows = latestActions(batchId)
+            recordedSpec(rows)?.let { finalizeIfComplete(it, rows) }
+            rows
+        }
+    }
 
     fun observeHistory(planId: String) = log.observeForPlan(planId)
 
@@ -68,15 +96,22 @@ class PlanDeployment @Inject constructor(
         runCatching { json.decodeFromString<DeploymentSpec>(row.payloadSummary) }.getOrNull()
     }
 
-    suspend fun confirm(spec: DeploymentSpec, only: ActionType? = null): List<ActionLogEntity> =
+    suspend fun confirm(spec: DeploymentSpec, only: ActionType? = null, calendarAbsenceConfirmed: Boolean = false): List<ActionLogEntity> =
         withContext(Dispatchers.IO) {
-            lock.withLock {
+            planOperations.forPlan(spec.planId).withLock {
                 val (current, selected) = database.withTransaction { prepare(spec, only) }
                 val graph = json.parseToJsonElement(current.json).jsonObject
                 val autonomy = (graph["autonomy"] as? JsonPrimitive)?.content ?: "L2"
                 for (type in selected) {
                     currentPlan(spec)
-                    val action = spec.toAction(type, autonomy)
+                    if (log.latestByAction(spec.batchId, type.name)?.decision == "done") continue
+                    val recoveringCalendar = type == ActionType.CALENDAR_WRITE && log.historyForPlan(spec.planId).any {
+                        it.actionType == type.name && it.decision in unresolvedCalendarWrites
+                    }
+                    val action = spec.toAction(type, autonomy).copy(
+                        calendarRecovery = recoveringCalendar,
+                        calendarAbsenceConfirmed = recoveringCalendar && calendarAbsenceConfirmed,
+                    )
                     val result = gateway.submit(action, confirmed = true)
                     if (result is SubmitResult.Rejected && result.reason != "rejected_already_executed") {
                         val detail = when (result.reason) {
@@ -84,25 +119,11 @@ class PlanDeployment @Inject constructor(
                             "autonomy_L0_notify_only", "autonomy_L1_manual" -> "当前计划的自主等级要求手动执行"
                             else -> "此动作未执行，请检查计划设置后重试"
                         }
-                        update(action, "failed", ExecutionReceipt(false, detail = detail))
+                        update(action, if (recoveringCalendar) "calendar_review" else "failed", ExecutionReceipt(false, detail = detail))
                     }
                 }
                 val rows = latestActions(spec.batchId)
-                if (deploymentTypes.all { type -> rows.any { it.actionType == type.name && it.decision == "done" } }) {
-                    val status = deployedStatus(current.status)
-                    if (status.name != current.status) {
-                        val deployedGraph = buildJsonObject {
-                            graph.forEach { (key, value) -> put(key, value) }
-                            put("title", spec.title)
-                            put("date", spec.toForm().date)
-                            put("status", status.name)
-                        }
-                        check(plans.updateDeploymentStatus(
-                            current.planId, current.version, current.status, status.name,
-                            deployedGraph.toString(), System.currentTimeMillis(),
-                        ) == 1) { "计划已更新，请重新打开后核对已执行的动作" }
-                    }
-                }
+                finalizeIfComplete(spec, rows)
                 rows
             }
         }
@@ -115,11 +136,16 @@ class PlanDeployment @Inject constructor(
         val previous = recordedSpec(oldRows.values.toList())
         val selected = if (only == null) deploymentTypes else listOf(only)
         require(selected.all { it in deploymentTypes }) { "该动作不能通过部署重试" }
+        if (ActionType.CALENDAR_WRITE in selected) {
+            check(log.historyForPlan(spec.planId).none {
+                it.actionType == ActionType.CALENDAR_WRITE.name && it.decision == "undo_pending"
+            }) { "请先在操作记录中核对上次撤销" }
+        }
         if (previous != null) {
             val calendarFieldsMatch = spec.copy(reminderAt = previous.reminderAt) == previous
             val reminderFieldsMatch = spec.reminderAt == previous.reminderAt
-            require(oldRows[ActionType.CALENDAR_WRITE.name]?.decision != "done" || calendarFieldsMatch) {
-                "已写入日历。修改已部署日历需要先从操作记录撤销原事件"
+            require(oldRows[ActionType.CALENDAR_WRITE.name]?.decision !in (unresolvedCalendarWrites + "done") || calendarFieldsMatch) {
+                "日历已有写入记录，请先核对或撤销原事件"
             }
             require(oldRows[ActionType.ALARM_SET.name]?.decision != "done" || reminderFieldsMatch) {
                 "该版本已有出门提醒，请保留原提醒时刻"
@@ -147,8 +173,31 @@ class PlanDeployment @Inject constructor(
         plans.currentByPlanId(spec.planId)?.takeIf { it.version == spec.version }
             ?: throw IllegalStateException("已保存计划的版本有变化，请重新打开当前版本")
 
-    suspend fun undoCalendar(planId: String, recordId: Long): ExecutionReceipt = withContext(Dispatchers.IO) {
-        lock.withLock {
+    private suspend fun finalizeIfComplete(spec: DeploymentSpec, rows: List<ActionLogEntity>) {
+        if (!deploymentCanFinalize(rows)) return
+        val current = plans.currentByPlanId(spec.planId) ?: return
+        if (current.version != spec.version || current.status !in setOf("DRAFT", "CANDIDATES")) return
+        val status = deployedStatus(current.status).name
+        val deployedGraph = buildJsonObject {
+            json.parseToJsonElement(current.json).jsonObject.forEach { (key, value) -> put(key, value) }
+            put("title", spec.title)
+            put("date", spec.toForm().date)
+            put("status", status)
+        }
+        check(plans.updateDeploymentStatus(
+            current.planId, current.version, current.status, status, deployedGraph.toString(), System.currentTimeMillis(),
+        ) == 1) { "计划已更新，请重新打开后核对已执行的动作" }
+    }
+
+    private suspend fun supersedeCalendarHistory(action: Action) {
+        val current = checkNotNull(log.latestByAction(action.batchId, action.type.name))
+        log.historyForPlan(action.planId).filter {
+            it.id < current.id && it.actionType == action.type.name && it.decision in (unresolvedCalendarWrites + "done")
+        }.forEach { log.insert(it.copy(decision = "superseded")) }
+    }
+
+    suspend fun undoCalendar(planId: String, currentVersion: Int, recordId: Long): ExecutionReceipt = withContext(Dispatchers.IO) {
+        planOperations.forPlan(planId).withLock {
             val record = log.byId(recordId)
             if (record == null || record.planId != planId || record.actionType != ActionType.CALENDAR_WRITE.name) {
                 return@withLock ExecutionReceipt(false, detail = "找不到该计划的日历操作")
@@ -156,9 +205,8 @@ class PlanDeployment @Inject constructor(
             if (record.decision == "undone") return@withLock ExecutionReceipt(true, detail = "该日历事件已撤销")
             val spec = recordedSpec(listOf(record))
             val current = plans.currentByPlanId(planId)
-            val latest = log.latestByAction(record.batchId, record.actionType)
-            if (spec == null || current?.version != spec.version || latest?.id != recordId ||
-                record.decision !in setOf("done", "undo_pending") || record.undoData.isBlank()) {
+            val target = calendarUndoCandidate(log.historyForPlan(planId))
+            if (spec == null || current?.version != currentVersion || spec.version > currentVersion || target?.id != recordId) {
                 return@withLock ExecutionReceipt(false, detail = "这是旧记录或缺少可核对的日历事件")
             }
             log.insert(record.copy(ts = System.currentTimeMillis(), decision = "undo_pending", evidenceJson = "{}"))
@@ -194,7 +242,4 @@ class PlanDeployment @Inject constructor(
         ))
     }
 
-    private companion object {
-        val deploymentTypes = listOf(ActionType.CALENDAR_WRITE, ActionType.ALARM_SET)
-    }
 }

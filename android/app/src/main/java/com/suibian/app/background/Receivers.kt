@@ -3,6 +3,7 @@ package com.suibian.app.background
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.app.AlarmManager
 import android.widget.Toast
 import com.suibian.app.BuildConfig
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,7 +21,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class AlarmReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var alarmScheduler: AlarmScheduler
+    @Inject lateinit var reminderDelivery: ReminderDelivery
 
     override fun onReceive(context: Context, intent: Intent) {
         val planId = intent.getStringExtra(AlarmScheduler.EXTRA_PLAN_ID) ?: return
@@ -30,16 +31,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (!alarmScheduler.consume(planId, action, triggerAt, planVersion)) return@launch
-                if (action == AlarmScheduler.ACTION_DEPART) {
-                    NotificationHelper.ensureChannels(context)
-                    NotificationHelper.notifyDepart(
-                        context,
-                        planId,
-                        "该出门了",
-                        "已到计划的出门提醒时间",
-                    )
-                } else if (BuildConfig.DEBUG) {
+                if (!reminderDelivery.deliver(planId, action, triggerAt, planVersion)) return@launch
+                if (action == AlarmScheduler.ACTION_TICK && BuildConfig.DEBUG) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "tick 已触发", Toast.LENGTH_SHORT).show()
                     }
@@ -59,7 +52,7 @@ class AlarmReceiver : BroadcastReceiver() {
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var alarmScheduler: AlarmScheduler
+    @Inject lateinit var reminderDelivery: ReminderDelivery
 
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
@@ -69,7 +62,8 @@ class BootReceiver : BroadcastReceiver() {
                     Intent.ACTION_BOOT_COMPLETED,
                     Intent.ACTION_TIME_CHANGED,
                     Intent.ACTION_MY_PACKAGE_REPLACED,
-                    -> alarmScheduler.rebuild()
+                    AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+                    -> reminderDelivery.restore()
                 }
             } finally {
                 pending.finish()

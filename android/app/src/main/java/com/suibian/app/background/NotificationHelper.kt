@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -38,13 +37,8 @@ object NotificationHelper {
         )
     }
 
-    fun notifyDepart(context: Context, planId: String, title: String, text: String) {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return  // 权限没给：10.5 的降级路径，首页常驻提示由调用方负责
-        }
+    fun notifyDepart(context: Context, planId: String, title: String, text: String): Boolean {
+        if (!canShowDepart(context)) return false
         val contentIntent = PendingIntent.getActivity(
             context,
             planId.hashCode(),
@@ -61,7 +55,11 @@ object NotificationHelper {
             // 声明为闹钟类：vivo/OriginOS 的"智能分类"会把无类别的通知判成 !priority 静默拦截
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .build()
-        NotificationManagerCompat.from(context).notify(planId.hashCode(), notification)
-        // TODO(W3): "出发了 / 晚 5 分钟" 按钮 —— 经透明 Activity 启动（Android 12 限制，8.4）
+        try {
+            NotificationManagerCompat.from(context).notify(planId.hashCode(), notification)
+        } catch (_: SecurityException) {
+            return false
+        }
+        return true
     }
 }

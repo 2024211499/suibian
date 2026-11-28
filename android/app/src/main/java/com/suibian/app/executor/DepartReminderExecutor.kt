@@ -38,6 +38,7 @@ class DepartReminderExecutor @Inject constructor(
             ReminderSchedule.APPROXIMATE -> ExecutionReceipt(true, detail = "已设置近似提醒，可能晚几分钟")
             ReminderSchedule.EXPIRED -> ExecutionReceipt(false, detail = "提醒时间已过，请改到未来")
             ReminderSchedule.PERMISSION_REQUIRED -> ExecutionReceipt(false, detail = "请开启闹钟权限后重试")
+            ReminderSchedule.UNAVAILABLE -> ExecutionReceipt(false, detail = "系统暂时无法设置提醒，可单独重试")
         }
     }
 }

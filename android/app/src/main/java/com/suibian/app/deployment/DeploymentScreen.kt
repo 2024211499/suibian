@@ -1,8 +1,10 @@
 package com.suibian.app.deployment
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import com.suibian.app.background.NotificationHelper
 import com.suibian.app.data.db.ActionLogEntity
 import com.suibian.app.executor.ActionType
 import kotlinx.serialization.json.Json
@@ -56,6 +60,9 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
     val selectedCalendar = state.calendars.firstOrNull { it.id == state.form.calendarId }
     val calendarLabel = selectedCalendar?.name ?: "选择目标日历"
     val calendarWritten = state.records.any { it.actionType == ActionType.CALENDAR_WRITE.name && it.decision == "done" }
+    val calendarNeedsReview = state.records.any {
+        it.actionType == ActionType.CALENDAR_WRITE.name && it.decision in unresolvedCalendarWrites
+    }
     val reminderWritten = state.records.any { it.actionType == ActionType.ALARM_SET.name && it.decision == "done" }
 
     BackHandler(enabled = state.preview == null) { viewModel.close() }
@@ -67,7 +74,7 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
         Text("部署计划", style = MaterialTheme.typography.headlineSmall)
         Text("版本 ${state.version}", style = MaterialTheme.typography.bodySmall)
         if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        val canEditCalendar = !state.busy && !calendarWritten
+        val canEditCalendar = !state.busy && !calendarWritten && !calendarNeedsReview
         val canEditReminder = !state.busy && !reminderWritten
         val form = state.form
         FormField("活动标题", form.title, canEditCalendar, ascii = false) { value -> viewModel.changeForm { it.copy(title = value) } }
@@ -102,6 +109,20 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
                 Text("开启出门通知")
             }
         }
+        if (state.records.any {
+                it.actionType == ActionType.ALARM_SET.name && it.decision == "failed" &&
+                    deploymentDetail(it)?.contains("通知") == true
+            }) {
+            TextButton(onClick = {
+                val action = if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                    Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS
+                } else Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                context.startActivity(Intent(action).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    putExtra(Settings.EXTRA_CHANNEL_ID, NotificationHelper.CHANNEL_DEPART)
+                })
+            }, enabled = !state.busy) { Text("打开出门通知设置") }
+        }
         state.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (state.records.isNotEmpty()) {
             TextButton(onClick = viewModel::openEditorHistory, enabled = !state.busy) { Text("操作记录") }
@@ -113,9 +134,14 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
             val type = ActionType.valueOf(row.actionType)
             Text("${deploymentActionLabel(type)} · ${deploymentDecisionLabel(row.decision)}", style = MaterialTheme.typography.titleSmall)
             deploymentDetail(row)?.takeIf { it.isNotBlank() }?.let { Text(it) }
-            if (row.decision in setOf("failed", "pending", "confirmed")) {
+            if (row.decision in setOf("failed", "pending", "confirmed", "calendar_review")) {
                 TextButton(onClick = { viewModel.preparePreview(type) }, enabled = !state.busy) {
                     Text("只重试${deploymentActionLabel(type)}")
+                }
+            }
+            if (type == ActionType.CALENDAR_WRITE && row.decision == "calendar_review") {
+                TextButton(onClick = { viewModel.preparePreview(type, calendarAbsenceConfirmed = true) }, enabled = !state.busy) {
+                    Text("我已核对系统日历，重新写入")
                 }
             }
         }
@@ -125,7 +151,7 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
         val shownForm = review.spec.toForm()
         AlertDialog(
             onDismissRequest = viewModel::dismissPreview,
-            title = { Text("确认部署动作") },
+            title = { Text(if (review.calendarAbsenceConfirmed) "确认原事件不存在" else "确认部署动作") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(shownForm.title)
@@ -133,6 +159,7 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
                     if (review.only != ActionType.ALARM_SET) {
                         Text(if (selectedCalendar == null) "日历未选定，日历动作将标为未执行" else "写入一条日历事件 · ${selectedCalendar.name}")
                     }
+                    if (review.calendarAbsenceConfirmed) Text("请先在系统日历检查是否还有这条行程。确认没有后再重新写入。")
                     if (review.only != ActionType.CALENDAR_WRITE) Text("出门提醒 ${shownForm.reminder}")
                 }
             },
@@ -167,8 +194,10 @@ internal fun deploymentDecisionLabel(decision: String) = when (decision) {
     "done" -> "已执行"
     "failed" -> "未执行，可重试"
     "confirmed" -> "执行结果待确认"
+    "calendar_review" -> "需核对系统日历"
     "undo_pending" -> "撤销结果待确认"
     "undone" -> "已撤销"
+    "superseded" -> "已由新版接管"
     else -> "待执行"
 }
 

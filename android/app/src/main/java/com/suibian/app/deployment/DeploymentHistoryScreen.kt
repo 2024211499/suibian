@@ -29,9 +29,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 internal fun DeploymentHistoryScreen(state: DeploymentHistory, viewModel: DeploymentViewModel) {
     var confirmingUndo by rememberSaveable { mutableStateOf<Long?>(null) }
-    val latestCalendarId = state.rows.firstOrNull {
-        it.batchId == "deployment:${state.version}:${state.planId}" && it.actionType == ActionType.CALENDAR_WRITE.name
-    }?.id
+    val latestCalendarId = calendarUndoCandidate(state.rows)?.id
 
     BackHandler(enabled = confirmingUndo == null) { viewModel.closeHistory() }
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -51,7 +49,11 @@ internal fun DeploymentHistoryScreen(state: DeploymentHistory, viewModel: Deploy
                     deploymentDetail(row)?.takeIf { it.isNotBlank() }?.let { Text(it) }
                     if (row.id == latestCalendarId && row.decision in setOf("done", "undo_pending") && row.undoData.isNotBlank()) {
                         TextButton(onClick = { confirmingUndo = row.id }, enabled = !state.busy) {
-                            Text(if (row.decision == "undo_pending") "继续撤销日历" else "撤销日历事件")
+                            Text(when {
+                                row.decision == "undo_pending" -> "继续撤销日历"
+                                row.batchId != "deployment:${state.version}:${state.planId}" -> "撤销旧版日历事件"
+                                else -> "撤销日历事件"
+                            })
                         }
                     }
                 }

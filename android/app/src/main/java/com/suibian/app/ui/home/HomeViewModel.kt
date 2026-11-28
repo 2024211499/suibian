@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.suibian.app.background.AlarmScheduler
 import com.suibian.app.data.api.SuibianApi
 import com.suibian.app.data.db.AppDatabase
+import com.suibian.app.data.db.DEBUG_ALARM_PLAN_ID
 import com.suibian.app.data.db.PlanEntity
+import com.suibian.app.data.db.PlanOperationLock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -41,6 +44,7 @@ class HomeViewModel @Inject constructor(
     private val api: SuibianApi,
     database: AppDatabase,
     private val json: Json,
+    private val planOperations: PlanOperationLock,
 ) : ViewModel() {
     private val planDao = database.planDao()
     private val _state = MutableStateFlow(HomeState())
@@ -124,12 +128,14 @@ class HomeViewModel @Inject constructor(
     fun savePlan() {
         val plan = _state.value.plan ?: return
         planAction("保存计划失败") {
-            val current = planDao.currentByPlanId(plan.summary.id)
-            val saved = when {
-                current == null || plan.summary.version > current.version ->
-                    planDao.saveCurrent(plan.toEntity(System.currentTimeMillis()), current?.version)
-                plan.summary.version == current.version -> current.json == plan.graph.toString()
-                else -> false
+            val saved = planOperations.forPlan(plan.summary.id).withLock {
+                val current = planDao.currentByPlanId(plan.summary.id)
+                when {
+                    current == null || plan.summary.version > current.version ->
+                        planDao.saveCurrent(plan.toEntity(System.currentTimeMillis()), current?.version)
+                    plan.summary.version == current.version -> current.json == plan.graph.toString()
+                    else -> false
+                }
             }
             val notice = if (saved) "计划已保存" else "当前版本已变化，请从已保存计划中重新打开。"
             _state.update { it.copy(notice = notice, saved = saved) }
@@ -210,7 +216,7 @@ class HomeViewModel @Inject constructor(
     fun debugScheduleDepartAlarm(notificationsGranted: Boolean = true) {
         viewModelScope.launch {
             val triggerAt = System.currentTimeMillis() + DEPART_DELAY_MS
-            val armed = alarmScheduler.scheduleDepartAlarm(triggerAt, DEBUG_PLAN_ID)
+            val armed = alarmScheduler.scheduleDepartAlarm(triggerAt, DEBUG_ALARM_PLAN_ID)
             _message.value = if (armed) {
                 val reminder = "出门闹钟已设，${formatTime(triggerAt, withSeconds = true)} 触发"
                 if (notificationsGranted) reminder else "$reminder。请在系统设置允许通知后再测。"
@@ -224,7 +230,7 @@ class HomeViewModel @Inject constructor(
     fun debugScheduleTick() {
         viewModelScope.launch {
             val triggerAt = System.currentTimeMillis() + TICK_DELAY_MS
-            val armed = alarmScheduler.scheduleTickAlarm(triggerAt, DEBUG_PLAN_ID)
+            val armed = alarmScheduler.scheduleTickAlarm(triggerAt, DEBUG_ALARM_PLAN_ID)
             _message.value = if (armed) {
                 "tick 已设：${formatTime(triggerAt, withSeconds = true)} 触发（10 秒后）"
             } else {
@@ -238,8 +244,6 @@ class HomeViewModel @Inject constructor(
             .format(DateTimeFormatter.ofPattern(if (withSeconds) "HH:mm:ss" else "HH:mm"))
 
     companion object {
-        /** 调试用固定 planId：alarm 表主键 (planId, kind)，重复点按钮覆盖同一行。 */
-        const val DEBUG_PLAN_ID = "debug-plan"
         private const val DEPART_DELAY_MS = 30L * 60_000
         private const val TICK_DELAY_MS = 10_000L
     }

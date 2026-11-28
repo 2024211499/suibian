@@ -53,7 +53,7 @@ class CalendarWriterExecutor @Inject constructor(@ApplicationContext private val
         if (!store.isWritable(draft.calendarId)) {
             ExecutionReceipt(false, detail = "所选日历已不可写，请重新选择")
         } else {
-            writer.write(draft)
+            writer.write(draft, action.calendarRecovery, action.calendarAbsenceConfirmed)
         }
     }
 
@@ -126,7 +126,11 @@ internal data class CalendarEventSnapshot(
 ) {
     fun matches(draft: CalendarEventDraft): Boolean = calendarId == draft.calendarId && title == draft.title &&
         startAt == draft.startAt && endAt == draft.endAt && zoneId == draft.zoneId && description == draft.marker &&
-        protectedColumns[Events.ALL_DAY] != "1" && protectedColumns[Events.HAS_ALARM] != "1" &&
+        protectedColumns[Events.ALL_DAY] != "1" &&
+        protectedColumns[Events.HAS_ALARM] != "1" &&
+        protectedColumns[Events.AVAILABILITY] in setOf(null, Events.AVAILABILITY_BUSY.toString()) &&
+        protectedColumns[Events.ACCESS_LEVEL] in setOf(null, Events.ACCESS_DEFAULT.toString()) &&
+        protectedColumns[Events.STATUS] in setOf(null, Events.STATUS_CONFIRMED.toString()) &&
         RECURRENCE_COLUMNS.all { protectedColumns[it].isNullOrEmpty() } &&
         protectedColumns[Events.EVENT_LOCATION].isNullOrEmpty()
 }
@@ -139,15 +143,31 @@ internal interface CalendarEventStore {
 }
 
 internal class CalendarEventWriter(private val store: CalendarEventStore) {
-    fun write(draft: CalendarEventDraft): ExecutionReceipt {
+    fun write(
+        draft: CalendarEventDraft,
+        recovering: Boolean = false,
+        absenceConfirmed: Boolean = false,
+    ): ExecutionReceipt {
         val existing = store.withMarker(draft.marker)
+        if (existing.isEmpty() && recovering && !absenceConfirmed) return ExecutionReceipt(
+            false, detail = "上次写入结果待核对。请在系统日历确认没有原事件，再选择重新写入", needsReview = true,
+        )
         val snapshot = when {
-            existing.isEmpty() -> store.byId(store.insert(draft))
+            existing.isEmpty() -> try {
+                store.byId(store.insert(draft))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: RuntimeException) {
+                return ExecutionReceipt(false, detail = "日历写入结果待核对，请先查找原事件", needsReview = true)
+            }
             existing.size == 1 -> existing.single()
             else -> null
         }
         if (snapshot == null || !snapshot.matches(draft)) {
-            return ExecutionReceipt(false, detail = "同一计划的日历记录有冲突，请先核对系统日历")
+            return ExecutionReceipt(
+                false, detail = "同一计划的日历记录有冲突，请先核对系统日历",
+                needsReview = true,
+            )
         }
         val detail = if (existing.isEmpty()) "已写入系统日历" else "日历事件已存在，已恢复关联"
         return ExecutionReceipt(true, Json.encodeToString(CalendarEventSnapshot.serializer(), snapshot), detail)
@@ -161,13 +181,17 @@ internal class CalendarEventWriter(private val store: CalendarEventStore) {
             return ExecutionReceipt(false, detail = "该日历事件不属于当前计划")
         }
 
-        val current = store.byId(snapshot.eventId) ?: return alreadyMissing()
+        val current = store.byId(snapshot.eventId) ?: return verifyMissing(marker)
         if (current != snapshot) return changedEvent()
         if (store.deleteMatching(snapshot)) return ExecutionReceipt(true, detail = "已撤销日历事件")
-        return if (store.byId(snapshot.eventId) == null) alreadyMissing() else changedEvent()
+        return if (store.byId(snapshot.eventId) == null) verifyMissing(marker) else changedEvent()
     }
 
-    private fun alreadyMissing() = ExecutionReceipt(true, detail = "日历事件已不存在")
+    private fun verifyMissing(marker: String) = if (store.withMarker(marker).isEmpty()) {
+        ExecutionReceipt(true, detail = "日历事件已不存在")
+    } else {
+        ExecutionReceipt(false, detail = "原事件已找不到，但同一计划仍有日历记录，请先核对")
+    }
 
     private fun changedEvent() = ExecutionReceipt(false, detail = "系统日历中的事件已变更，请先核对后手动处理")
 }
@@ -220,6 +244,9 @@ private class ProviderCalendarStore(private val resolver: ContentResolver) : Cal
             put(Events.EVENT_TIMEZONE, draft.zoneId)
             put(Events.DESCRIPTION, draft.marker)
             put(Events.ALL_DAY, 0)
+            put(Events.AVAILABILITY, Events.AVAILABILITY_BUSY)
+            put(Events.ACCESS_LEVEL, Events.ACCESS_DEFAULT)
+            put(Events.STATUS, Events.STATUS_CONFIRMED)
         }
         return ContentUris.parseId(checkNotNull(resolver.insert(Events.CONTENT_URI, values)))
     }
