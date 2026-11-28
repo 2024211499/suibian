@@ -5,18 +5,23 @@ MOCK=1 时每个接口返回 schema/examples/ 里的示例响应（Android 端�
 限流：按设备 ID 每分钟 20 次、IP 每分钟 60 次 —— TODO(W5)，见技术文档 14.3。
 """
 
+import asyncio
 import json
 from typing import Any, Literal
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from sse_starlette.sse import EventSourceResponse
 
-from app.config import get_settings
+from app.config import get_settings, use_settings
 from app.engine.models import PlanGraph, Src
 from app.engine.simulate import depart_by
 from app.engine.simulate import simulate as run_simulation
+from app.llm.validate import SchemaError
+from app.plan_input.parser import ParseRequest, parse_plan
+from app.refresh import RefreshRequest, refresh_plan
+from app.weather_simulation import evaluate_weather
 
 router = APIRouter()
 
@@ -66,6 +71,17 @@ class SimulationRequest(BaseModel):
         return self.depart_min
 
 
+class WeatherSimulationRequest(SimulationRequest):
+    use_weather: bool = False
+    now: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def weather_reference_required(self):
+        if self.use_weather and self.now is None:
+            raise ValueError("天气推演需要带时区的 now")
+        return self
+
+
 class LegDelay(BaseModel):
     edge_id: str = Field(min_length=1)
     delay_min: float = Field(gt=0, le=1440)
@@ -84,9 +100,15 @@ class ReplanRequest(SimulationRequest):
 
 
 @router.post("/parse")
-async def parse(payload: dict = Body(...)):
+async def parse(payload: ParseRequest, request: Request):
     """1.1 一句话录入已有安排。真实实现：LLM 解析（5.2）+ 高德地理编码/路径。"""
-    return _mock_or_todo("parse", "W2", "/v1/parse：大模型解析 + 地理编码")
+    if get_settings().mock:
+        return _example("parse")
+    settings = await asyncio.to_thread(request.app.state.provider_store.effective_settings, get_settings())
+    user = getattr(request.state, "user", None)
+    with use_settings(settings):
+        async with request.app.state.model_runtime.lease(settings) as client:
+            return await parse_plan(payload, client, user_id=user["id"] if user else None)
 
 
 @router.post("/ocr/parse")
@@ -129,7 +151,16 @@ async def generate_result(job_id: str):
 
 
 @router.post("/simulate")
-def simulate(payload: SimulationRequest):
+async def simulate(payload: WeatherSimulationRequest):
+    if not payload.use_weather:
+        return await asyncio.to_thread(_simulate_plain, payload)
+    try:
+        return await evaluate_weather(payload.itinerary(), payload.now, payload.departure(), payload.n, payload.seed)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+def _simulate_plain(payload: SimulationRequest):
     """完整计划在两种运行模式下使用同一引擎。"""
     if get_settings().mock and payload.plan == {"plan_id": "p_demo01"}:
         return _example("simulate")
@@ -156,9 +187,16 @@ def simulate(payload: SimulationRequest):
 
 
 @router.post("/refresh")
-async def refresh(payload: dict = Body(...)):
+async def refresh(payload: RefreshRequest, request: Request):
     """3.1 天气 / 3.2 路况：重查并更新边的 ETA 和来源标签。"""
-    return _mock_or_todo("refresh", "W3", "/v1/refresh：天气 + 路况刷新")
+    if get_settings().mock:
+        return _example("refresh")
+    settings = await asyncio.to_thread(request.app.state.provider_store.effective_settings, get_settings())
+    with use_settings(settings):
+        try:
+            return await refresh_plan(payload)
+        except (ValueError, SchemaError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/report")

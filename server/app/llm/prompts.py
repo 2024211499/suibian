@@ -17,7 +17,7 @@ TOKEN_RE = re.compile(r"\{\{SCHEMA:([a-z_.]+)\}\}")
 
 @lru_cache
 def load_prompt(task: str) -> str:
-    path = Path(get_settings().schema_dir).parent / "server" / "app" / "llm" / "prompts" / f"{task}.md"
+    path = Path(__file__).with_name("prompts") / f"{task}.md"
     text = path.read_text(encoding="utf-8")
 
     def _sub(m: re.Match) -> str:

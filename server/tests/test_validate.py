@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.llm.validate import SchemaError, extract_json, validate_obj
+from app.llm.validate import SchemaError, extract_json, validate_obj, validate_or_repair
 
 SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schema"
 
@@ -21,6 +21,48 @@ def test_extract_json_strips_fence():
 
 def test_extract_json_plain():
     assert json.loads(extract_json('{"a": 2}')) == {"a": 2}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "不是 JSON",
+        '{"a":',
+        '[{"a": 1}]',
+        '{"a": 1, "a": 2}',
+        '{"a": NaN}',
+        '{"a": Infinity}',
+        '{"a": 1e999}',
+        '{"a": 1} {"a": 2}',
+    ],
+)
+def test_untrustworthy_json_is_a_controlled_validation_failure(raw):
+    with pytest.raises(SchemaError):
+        extract_json(raw)
+
+
+def test_validation_repair_handles_malformed_json_and_is_bounded():
+    calls = []
+
+    def retry(messages, schema):
+        calls.append(messages)
+        return '{"a":'
+
+    with pytest.raises(SchemaError):
+        validate_or_repair("不是 JSON", {"type": "object"}, [{"role": "user", "content": "输入"}], retry)
+    assert len(calls) == 1
+
+
+def test_extract_json_accepts_explanatory_trailing_text():
+    assert json.loads(extract_json('结果：{"a": 2}\n以上为结构化结果。')) == {"a": 2}
+
+
+def test_schema_error_contains_schema_location_without_output_values():
+    secret = "13812345678"
+    with pytest.raises(SchemaError) as error:
+        validate_obj({"count": secret}, {"properties": {"count": {"type": "integer"}}})
+    assert "count" in str(error.value)
+    assert secret not in str(error.value)
 
 
 def test_intent_schema_accepts_good():

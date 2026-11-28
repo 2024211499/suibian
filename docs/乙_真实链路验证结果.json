@@ -1,0 +1,261 @@
+{
+  "source": "live_api",
+  "scenario_source": "synthetic",
+  "verified_at": "2026-11-28T15:36:30.815409+08:00",
+  "provider": "deepseek",
+  "health_status": 200,
+  "registration_status": 201,
+  "parse_status": 200,
+  "parse_elapsed_s": 6.609,
+  "input": {
+    "text": "明天上午十点前到中国国家博物馆参观，从天安门出发，步行。",
+    "now": "2026-11-28T15:36:30.815409+08:00",
+    "city_adcode": "110100"
+  },
+  "questions": [],
+  "plan": {
+    "plan_id": "e166ef27-5c39-4525-8c4a-56884cd95634",
+    "version": 1,
+    "status": "DRAFT",
+    "date": "2026-11-29",
+    "city_adcode": "110100",
+    "title": "中国国家博物馆",
+    "members": [
+      {
+        "id": "m0",
+        "alias": "我"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "n0",
+        "kind": "origin",
+        "name": "天安门",
+        "loc": {
+          "lng": 116.397463,
+          "lat": 39.909187
+        },
+        "src": {
+          "tag": "llm_parsed"
+        }
+      },
+      {
+        "id": "n1",
+        "kind": "stay",
+        "name": "中国国家博物馆",
+        "loc": {
+          "lng": 116.401304,
+          "lat": 39.905374
+        },
+        "category": "exhibit",
+        "window": {
+          "latest": "10:00"
+        },
+        "hard": true,
+        "members": [
+          "m0"
+        ],
+        "src": {
+          "tag": "llm_parsed"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "n0",
+        "to": "n1",
+        "mode": "walk",
+        "eta_min": 36.516666666666666,
+        "dist_m": 2739.0,
+        "src": {
+          "tag": "amap_route",
+          "fetched_at": "2026-11-28T07:36:37.435148+00:00"
+        }
+      }
+    ],
+    "constraints": []
+  },
+  "simulate_status": 200,
+  "simulation": {
+    "sim": {
+      "p_all": 1.0,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "n1",
+          "p_ok": 1.0,
+          "arrive_p90": 580.1526820127982,
+          "slack_p50": 23.665363687880017
+        }
+      ],
+      "weakest": {
+        "node": "n1",
+        "p_ok": 1.0
+      },
+      "depart_by": "09:19",
+      "p_target": 0.9
+    },
+    "evidence": {
+      "labels": [
+        {
+          "field": "e1.eta_min",
+          "tag": "amap_route",
+          "fetched_at": "2026-11-28T07:36:37.435148+00:00"
+        }
+      ]
+    }
+  },
+  "replan_status": 200,
+  "replan": {
+    "base_version": 1,
+    "before": {
+      "p_all": 1.0,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "n1",
+          "p_ok": 1.0,
+          "arrive_p90": 580.1526820127982,
+          "slack_p50": 23.665363687880017
+        }
+      ],
+      "weakest": {
+        "node": "n1",
+        "p_ok": 1.0
+      }
+    },
+    "after": {
+      "p_all": 0.978,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "n1",
+          "p_ok": 0.978,
+          "arrive_p90": 596.6462528989316,
+          "slack_p50": 8.740136540044261
+        }
+      ],
+      "weakest": {
+        "node": "n1",
+        "p_ok": 0.978
+      }
+    },
+    "affected": [
+      {
+        "node": "n1",
+        "before": {
+          "p_ok": 1.0,
+          "arrive_p90": 580.1526820127982,
+          "slack_p50": 23.665363687880017
+        },
+        "after": {
+          "p_ok": 0.978,
+          "arrive_p90": 596.6462528989316,
+          "slack_p50": 8.740136540044261
+        }
+      }
+    ],
+    "options": [
+      {
+        "option_id": "keep_route",
+        "ops": [],
+        "plan_after": {
+          "plan_id": "e166ef27-5c39-4525-8c4a-56884cd95634",
+          "version": 2,
+          "title": "中国国家博物馆",
+          "date": "2026-11-29",
+          "city_adcode": "110100",
+          "status": "REPLANNING",
+          "autonomy": "L2",
+          "p_target": 0.9,
+          "members": [
+            {
+              "id": "m0",
+              "alias": "我"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "n0",
+              "kind": "origin",
+              "name": "天安门",
+              "loc": {
+                "lng": 116.397463,
+                "lat": 39.909187
+              },
+              "hard": false,
+              "value": 2,
+              "members": [],
+              "src": {
+                "tag": "llm_parsed"
+              }
+            },
+            {
+              "id": "n1",
+              "kind": "stay",
+              "name": "中国国家博物馆",
+              "category": "exhibit",
+              "loc": {
+                "lng": 116.401304,
+                "lat": 39.905374
+              },
+              "window": {
+                "latest": "10:00"
+              },
+              "hard": true,
+              "value": 2,
+              "members": [
+                "m0"
+              ],
+              "src": {
+                "tag": "llm_parsed"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "e1",
+              "from": "n0",
+              "to": "n1",
+              "mode": "walk",
+              "eta_min": 51.516666666666666,
+              "dist_m": 2739.0,
+              "src": {
+                "tag": "user"
+              }
+            }
+          ],
+          "constraints": []
+        },
+        "sim": {
+          "p_all": 0.978,
+          "n_samples": 2000,
+          "seed": 42,
+          "per_node": [
+            {
+              "node": "n1",
+              "p_ok": 0.978,
+              "arrive_p90": 596.6462528989316,
+              "slack_p50": 8.740136540044261
+            }
+          ],
+          "weakest": {
+            "node": "n1",
+            "p_ok": 0.978
+          }
+        },
+        "cost": {
+          "extra_min": 15.0
+        },
+        "score": 0.978,
+        "actions": [],
+        "explain_tpl": "原路线增加了{delta_min}分钟，仍可保留原安排"
+      }
+    ],
+    "relax": null
+  }
+}

@@ -1,8 +1,11 @@
 """全局配置：全部来自 .env（技术文档 14.2），代码里不写死密钥和模型名。"""
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,32 +35,62 @@ class Settings(BaseSettings):
     # 开发和测试默认开；部署时在 .env 里改 0。
     mock: bool = True
 
+    auth_required: bool = True
+    auth_admin_username: str = ""
+    auth_admin_password: str = Field(default="", repr=False)
+
     # --- 大模型（技术文档 5.1，模型 ID 以控制台为准）---
     qwen_base: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    qwen_key: str = ""
+    qwen_key: str = Field(default="", repr=False)
     qwen_main: str = "qwen-plus"
     qwen_lite: str = "qwen-flash"
     ds_base: str = "https://api.deepseek.com"
-    ds_key: str = ""
+    ds_key: str = Field(default="", repr=False)
     ds_main: str = ""
 
     # --- 外部服务 ---
-    amap_web_key: str = ""
+    amap_web_key: str = Field(default="", repr=False)
+    provider_master_key: str = Field(default="", repr=False)
     qw_host: str = ""  # 和风控制台分配的 API Host
+    qw_api_key: str = Field(default="", repr=False)
+    qw_developer_id: str = ""
     qw_project_id: str = ""
     qw_key_id: str = ""
-    qw_private_key: str = ""
+    qw_private_key: str = Field(default="", repr=False)
+    qw_timeout_s: float = Field(default=4, gt=0, le=10)
+    refresh_timeout_s: float = Field(default=15, gt=0, le=30)
     redis_url: str = "redis://localhost:6379/0"
 
     # --- 预算与限流（技术文档 6.4 / 14.3，配额为 2025-05 月配额制）---
     daily_llm_calls_max: int = 3000
     daily_search_max: int = 120
     daily_generate_max: int = 10
+    parse_llm_daily_max: int = Field(default=200, ge=0)
+    parse_timeout_s: float = Field(default=20, gt=0, le=60)
+    parse_llm_timeout_s: float = Field(default=10, gt=0, le=60)
+    parse_user_daily_max: int = Field(default=50, ge=0)
 
     # --- 路径 ---
     schema_dir: Path = REPO_ROOT / "schema"
+    state_dir: Path = REPO_ROOT / ".state"
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+_runtime: ContextVar[Settings | None] = ContextVar("request_settings", default=None)
+
+
+def runtime_settings() -> Settings:
+    return _runtime.get() or get_settings()
+
+
+@contextmanager
+def use_settings(settings: Settings):
+    token = _runtime.set(settings)
+    try:
+        yield
+    finally:
+        _runtime.reset(token)

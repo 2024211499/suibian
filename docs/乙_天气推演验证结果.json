@@ -1,0 +1,252 @@
+{
+  "verified_at": "2026-11-28T17:22:59.702748+08:00",
+  "data_source": "live_amap_and_qweather",
+  "scenario_source": "synthetic_itinerary",
+  "anonymous_status": 401,
+  "refresh_status": 200,
+  "weather_refresh_status": "ok",
+  "simulate_status": 200,
+  "elapsed_s": 0.032,
+  "request": {
+    "plan": {
+      "plan_id": "e166ef27-5c39-4525-8c4a-56884cd95634",
+      "version": 1,
+      "status": "DRAFT",
+      "date": "2026-11-28",
+      "city_adcode": "110100",
+      "title": "中国国家博物馆",
+      "members": [
+        {
+          "id": "m0",
+          "alias": "我"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "n0",
+          "kind": "origin",
+          "name": "天安门",
+          "loc": {
+            "lng": 116.397463,
+            "lat": 39.909187
+          },
+          "src": {
+            "tag": "llm_parsed"
+          }
+        },
+        {
+          "id": "n1",
+          "kind": "stay",
+          "name": "中国国家博物馆",
+          "loc": {
+            "lng": 116.401304,
+            "lat": 39.905374
+          },
+          "category": "exhibit",
+          "window": {
+            "latest": "18:38"
+          },
+          "hard": true,
+          "members": [
+            "m0"
+          ],
+          "src": {
+            "tag": "llm_parsed"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "from": "n0",
+          "to": "n1",
+          "mode": "walk",
+          "eta_min": 36.516666666666666,
+          "dist_m": 2739.0,
+          "src": {
+            "tag": "amap_route",
+            "fetched_at": "2026-11-28T09:23:01.623384+00:00"
+          }
+        }
+      ],
+      "constraints": []
+    },
+    "depart_min": 1048,
+    "use_weather": true,
+    "now": "2026-11-28T17:22:59.702748+08:00",
+    "n": 2000,
+    "seed": 42
+  },
+  "response": {
+    "sim": {
+      "p_all": 1.0,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "n1",
+          "p_ok": 1.0,
+          "arrive_p90": 1088.152682012798,
+          "slack_p50": 33.66536368788002
+        }
+      ],
+      "weakest": {
+        "node": "n1",
+        "p_ok": 1.0
+      },
+      "p_target": 0.9,
+      "depart_by": "17:57"
+    },
+    "evidence": {
+      "labels": [
+        {
+          "field": "e1.eta_min",
+          "tag": "amap_route",
+          "fetched_at": "2026-11-28T09:23:01.623384+00:00"
+        },
+        {
+          "field": "weather.effects",
+          "tag": "default",
+          "note": "天气修正规则估计，非地图实测耗时"
+        }
+      ]
+    },
+    "weather": {
+      "status": "applied",
+      "scope": "each_leg_origin_at_departure",
+      "effects_source": "default",
+      "rules_version": 1,
+      "sources": {
+        "e1": {
+          "location": "116.40,39.91",
+          "source": "qweather_hourly",
+          "fetched_at": "2026-11-28T09:23:01.652338+00:00",
+          "attributions": [
+            "https://developer.qweather.com/attribution.html"
+          ],
+          "forecast_minutes": [
+            1080.0,
+            1140.0,
+            1200.0,
+            1260.0,
+            1320.0,
+            1380.0,
+            1440.0,
+            1500.0,
+            1560.0,
+            1620.0,
+            1680.0,
+            1740.0,
+            1800.0,
+            1860.0,
+            1920.0,
+            1980.0,
+            2040.0,
+            2100.0,
+            2160.0,
+            2220.0,
+            2280.0,
+            2340.0,
+            2400.0,
+            2460.0
+          ]
+        }
+      },
+      "errors": [],
+      "coverage": {
+        "e1": {
+          "covered_samples": 2000,
+          "unknown_samples": 0,
+          "blocked_samples": 0
+        }
+      },
+      "blocked_edges": [],
+      "forecast_selection": "next_hourly_point_within_60_minutes"
+    }
+  },
+  "baseline": {
+    "sim": {
+      "p_all": 1.0,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "n1",
+          "p_ok": 1.0,
+          "arrive_p90": 1088.152682012798,
+          "slack_p50": 33.66536368788002
+        }
+      ],
+      "weakest": {
+        "node": "n1",
+        "p_ok": 1.0
+      },
+      "depart_by": "17:57",
+      "p_target": 0.9
+    },
+    "evidence": {
+      "labels": [
+        {
+          "field": "e1.eta_min",
+          "tag": "amap_route",
+          "fetched_at": "2026-11-28T09:23:01.623384+00:00"
+        }
+      ]
+    }
+  },
+  "synthetic_rain_scenarios": {
+    "source": "synthetic",
+    "rain_mm": 3,
+    "plain_walk": {
+      "p_all": 0.998,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "d",
+          "p_ok": 0.998,
+          "arrive_p90": 531.991427848178,
+          "slack_p50": 5.099697136219106
+        }
+      ],
+      "weakest": {
+        "node": "d",
+        "p_ok": 0.998
+      }
+    },
+    "rain_walk": {
+      "p_all": 0.874,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "d",
+          "p_ok": 0.874,
+          "arrive_p90": 535.2901420254046,
+          "slack_p50": 2.114651706651955
+        }
+      ],
+      "weakest": {
+        "node": "d",
+        "p_ok": 0.874
+      }
+    },
+    "rain_bike": {
+      "p_all": 0.0,
+      "n_samples": 2000,
+      "seed": 42,
+      "per_node": [
+        {
+          "node": "d",
+          "p_ok": 0.0,
+          "arrive_p90": null,
+          "slack_p50": null
+        }
+      ],
+      "weakest": {
+        "node": "d",
+        "p_ok": 0.0
+      }
+    }
+  }
+}

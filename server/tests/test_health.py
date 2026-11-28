@@ -45,7 +45,7 @@ def test_unimplemented_returns_501_when_not_mock(monkeypatch):
     get_settings.cache_clear()
     try:
         client = TestClient(create_app())
-        r = client.post("/v1/parse", json={"text": "x", "now": "2026-12-04T21:00:00+08:00"})
+        r = client.post("/v1/ocr/parse", json={"ocr_text": "x", "now": "2026-12-04T21:00:00+08:00"})
         assert r.status_code == 501
         assert "todo" in r.json()
     finally:

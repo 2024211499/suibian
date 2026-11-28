@@ -51,7 +51,15 @@ $env:MOCK = '1'
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-在另一终端查询 `/v1/health`，确认 `status=ok`、`checks.schema=ok`。从仓库根执行 `bash scripts/deploy_smoke.sh http://127.0.0.1:8000` 检查健康接口和解析草案，任一接口失败时返回非零退出码。
+在另一终端查询 `/v1/health`，确认 `status=ok`、`checks.schema=ok`。默认启用登录鉴权，账号初始化及客户端接入见[账号与团队凭据联调](docs/乙_账号与团队凭据联调.md)。
+
+从仓库根执行 `bash scripts/deploy_smoke.sh http://127.0.0.1:8000 --allow-mock --login`，检查开发模式下的资源打包和真实推演。真实服务使用 `bash scripts/deploy_smoke.sh https://你的服务地址 --login --parse-file request.json`，其中 `request.json` 是包含明确起终点、交通方式及带时区 `now` 的完整解析请求。已有令牌可通过 `SUIBIAN_SMOKE_TOKEN` 环境变量传入；不要将密码或令牌写进命令参数。任一检查失败返回非零退出码，开发模式通过与真实录入通过分别报告。
+
+当前资源、存储位置和待核验额度见[乙方资源记录](docs/resources.md)。
+
+甲方接入请先读[甲方联调交接文档](docs/甲方联调交接.md)，包含当前分支、HTTPS 地址、登录、业务请求构造、空值与错误处理及联合验收清单。
+
+甲方已有后端代码和 `.env`、准备在自己电脑运行服务时，按[甲方主机启动手册](docs/甲方主机启动手册.md)操作。
 
 ### Android
 

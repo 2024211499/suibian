@@ -16,6 +16,8 @@ dependencies = [
     "openai>=1.60",
     "sse-starlette>=2.2",
     "PyYAML>=6.0",
+    "argon2-cffi>=23.1",
+    "cryptography>=43.0",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +44,8 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.lint.per-file-ignores]
 # FastAPI 的 Body(...) 默认参数是框架惯例，不适用 bugbear B008
 "app/api/routes.py" = ["B008"]
+"app/auth/routes.py" = ["B008"]
+"app/providers/routes.py" = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
