@@ -7,20 +7,19 @@ TODO(W2)：接 DAILY_LLM_CALLS_MAX 计数（Redis）。
 
 from __future__ import annotations
 
-import json
+import asyncio
 import time
 from dataclasses import dataclass
 
 from openai import (
     APIConnectionError,
-    APITimeoutError,
+    APIResponseValidationError,
+    APIStatusError,
     AsyncOpenAI,
-    InternalServerError,
-    RateLimitError,
 )
 
 from app.config import Settings
-from app.llm.validate import SchemaError, extract_json, validate_obj
+from app.llm.validate import JSONOutputError, SchemaError, parse_json, validate_obj
 
 
 class LLMFail(Exception):
@@ -36,12 +35,12 @@ class Provider:
     blocked_until: float = 0.0
 
     def healthy(self) -> bool:
-        return time.time() >= self.blocked_until
+        return time.monotonic() >= self.blocked_until
 
     def mark_fail(self) -> None:
         self.fail_count += 1
         if self.fail_count >= 3:
-            self.blocked_until = time.time() + 60
+            self.blocked_until = time.monotonic() + 60
             self.fail_count = 0
 
     def mark_ok(self) -> None:
@@ -54,7 +53,7 @@ def providers_from(settings: Settings) -> list[Provider]:
         out.append(
             Provider(
                 name="qwen",
-                client=AsyncOpenAI(base_url=settings.qwen_base, api_key=settings.qwen_key),
+                client=AsyncOpenAI(base_url=settings.qwen_base, api_key=settings.qwen_key, max_retries=0),
                 models={"main": settings.qwen_main, "lite": settings.qwen_lite},
             )
         )
@@ -62,7 +61,7 @@ def providers_from(settings: Settings) -> list[Provider]:
         out.append(
             Provider(
                 name="deepseek",
-                client=AsyncOpenAI(base_url=settings.ds_base, api_key=settings.ds_key),
+                client=AsyncOpenAI(base_url=settings.ds_base, api_key=settings.ds_key, max_retries=0),
                 models={"main": settings.ds_main, "lite": settings.ds_main},
             )
         )
@@ -73,6 +72,10 @@ class LLMClient:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.providers = providers_from(settings)
+
+    async def aclose(self) -> None:
+        """应用停止时释放所有服务商连接；请求之间复用连接与熔断状态。"""
+        await asyncio.gather(*(provider.client.close() for provider in self.providers))
 
     async def call(
         self,
@@ -89,39 +92,44 @@ class LLMClient:
             attempt_messages = list(messages)
             for _attempt in range(2):
                 try:
-                    r = await p.client.chat.completions.create(
-                        model=p.models[tier],
-                        messages=attempt_messages,
-                        response_format={"type": "json_object"},
-                        temperature=0.2,
-                        timeout=timeout,
-                    )
-                    raw = r.choices[0].message.content or ""
-                    obj = json.loads(extract_json(raw))
+                    async with asyncio.timeout(timeout):
+                        r = await p.client.chat.completions.create(
+                            model=p.models[tier],
+                            messages=attempt_messages,
+                            response_format={"type": "json_object"},
+                            temperature=0.2,
+                            timeout=timeout,
+                        )
+                    if not r.choices or getattr(r.choices[0], "finish_reason", None) not in (None, "stop"):
+                        raise JSONOutputError("模型未完整输出结果")
+                    obj = parse_json(r.choices[0].message.content or "")
                     validate_obj(obj, schema)
                     p.mark_ok()
                     return obj
-                except (APITimeoutError, APIConnectionError, RateLimitError, InternalServerError) as e:
+                except (TimeoutError, APIConnectionError, APIStatusError, APIResponseValidationError) as e:
                     p.mark_fail()
                     last_err = e
                     break  # 服务级失败，换下一家
                 except SchemaError as e:
                     last_err = e
-                    attempt_messages = messages + [
+                    attempt_messages = list(messages) + [
                         {"role": "user", "content": f"上次输出不符合 Schema：{e}。请修正后重新输出完整 JSON。"}
                     ]
-                    # 校验失败 → 带错误信息重试第 2 次
-        raise LLMFail(f"task={task}: {last_err}")
+                    if _attempt == 1:
+                        p.mark_fail()
+        # 对外只暴露错误种类，避免把上游响应正文或鉴权信息拼进异常消息。
+        raise LLMFail(f"task={task}: {type(last_err).__name__ if last_err else 'no_available_provider'}") from last_err
 
     async def probe(self) -> dict[str, str]:
         """健康检查：主备各发一个 1 token 请求（技术文档 14.3）。"""
         out: dict[str, str] = {}
         for p in self.providers:
             try:
-                await p.client.chat.completions.create(
-                    model=p.models["lite"], messages=[{"role": "user", "content": "hi"}], max_tokens=1
-                )
+                async with asyncio.timeout(4):
+                    await p.client.chat.completions.create(
+                        model=p.models["lite"], messages=[{"role": "user", "content": "hi"}], max_tokens=1, timeout=4
+                    )
                 out[p.name] = "ok"
-            except Exception as e:  # noqa: BLE001
+            except (TimeoutError, APIConnectionError, APIStatusError, APIResponseValidationError) as e:
                 out[p.name] = f"fail:{type(e).__name__}"
         return out

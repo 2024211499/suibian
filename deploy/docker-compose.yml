@@ -8,6 +8,10 @@ services:
       dockerfile: server/Dockerfile
     environment:
       - MOCK=${MOCK:-0}
+      - AUTH_REQUIRED=${AUTH_REQUIRED:-1}
+      - AUTH_ADMIN_USERNAME=${AUTH_ADMIN_USERNAME:-}
+      - AUTH_ADMIN_PASSWORD=${AUTH_ADMIN_PASSWORD:-}
+      - PROVIDER_MASTER_KEY=${PROVIDER_MASTER_KEY:-}
       - QWEN_BASE=${QWEN_BASE}
       - QWEN_KEY=${QWEN_KEY}
       - QWEN_MAIN=${QWEN_MAIN}
@@ -24,6 +28,12 @@ services:
       - DAILY_LLM_CALLS_MAX=${DAILY_LLM_CALLS_MAX:-3000}
       - DAILY_SEARCH_MAX=${DAILY_SEARCH_MAX:-120}
       - DAILY_GENERATE_MAX=${DAILY_GENERATE_MAX:-10}
+      - PARSE_LLM_DAILY_MAX=${PARSE_LLM_DAILY_MAX:-200}
+      - PARSE_USER_DAILY_MAX=${PARSE_USER_DAILY_MAX:-50}
+      - PARSE_TIMEOUT_S=${PARSE_TIMEOUT_S:-20}
+      - PARSE_LLM_TIMEOUT_S=${PARSE_LLM_TIMEOUT_S:-10}
+    volumes:
+      - api_state:/srv/.state
     depends_on:
       - redis
     # 只监听容器内网，由 Caddy 对外
@@ -63,6 +73,7 @@ services:
   #   restart: unless-stopped
 
 volumes:
+  api_state:
   caddy_data:
   caddy_config:
   # pg_data:

@@ -5,18 +5,20 @@ MOCK=1 时每个接口返回 schema/examples/ 里的示例响应（Android 端�
 限流：按设备 ID 每分钟 20 次、IP 每分钟 60 次 —— TODO(W5)，见技术文档 14.3。
 """
 
+import asyncio
 import json
 from typing import Any, Literal
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
-from app.config import get_settings
+from app.config import get_settings, use_settings
 from app.engine.models import PlanGraph, Src
 from app.engine.simulate import depart_by
 from app.engine.simulate import simulate as run_simulation
+from app.plan_input.parser import ParseRequest, parse_plan
 
 router = APIRouter()
 
@@ -84,9 +86,15 @@ class ReplanRequest(SimulationRequest):
 
 
 @router.post("/parse")
-async def parse(payload: dict = Body(...)):
+async def parse(payload: ParseRequest, request: Request):
     """1.1 一句话录入已有安排。真实实现：LLM 解析（5.2）+ 高德地理编码/路径。"""
-    return _mock_or_todo("parse", "W2", "/v1/parse：大模型解析 + 地理编码")
+    if get_settings().mock:
+        return _example("parse")
+    settings = await asyncio.to_thread(request.app.state.provider_store.effective_settings, get_settings())
+    user = getattr(request.state, "user", None)
+    with use_settings(settings):
+        async with request.app.state.model_runtime.lease(settings) as client:
+            return await parse_plan(payload, client, user_id=user["id"] if user else None)
 
 
 @router.post("/ocr/parse")
