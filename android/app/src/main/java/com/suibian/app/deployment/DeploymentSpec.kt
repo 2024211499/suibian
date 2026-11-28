@@ -22,6 +22,8 @@ data class DeploymentForm(
     val end: String,
     val reminder: String,
     val calendarId: Long? = null,
+    /** 计划未指定时，使用系统日历事件提醒的应用默认值。 */
+    val calendarReminderMinutes: Long? = null,
 ) {
     fun toSpec(planId: String, version: Int, now: Long): DeploymentSpec {
         require(title.isNotBlank()) { "请填写活动标题" }
@@ -33,7 +35,13 @@ data class DeploymentForm(
         require(endAt > startAt) { "结束时间必须晚于开始时间" }
         require(endAt > now) { "行程已经结束，请确认日期和时段" }
         require(reminderAt <= startAt) { "出门提醒不能晚于开始时间" }
-        return DeploymentSpec(planId, version, title.trim(), calendarId, startAt, endAt, zoneId.id, reminderAt)
+        require(calendarReminderMinutes == null || calendarReminderMinutes in 0..Int.MAX_VALUE.toLong()) {
+            "日历事件提醒分钟数无效"
+        }
+        return DeploymentSpec(
+            planId, version, title.trim(), calendarId, startAt, endAt, zoneId.id, reminderAt,
+            calendarReminderMinutes,
+        )
     }
 
     private fun timestamp(day: LocalDate, text: String, zone: ZoneId, field: String): Long {
@@ -70,6 +78,8 @@ data class DeploymentSpec(
     val endAt: Long,
     val zoneId: String,
     val reminderAt: Long,
+    /** 日历事件自带提醒的提前分钟数；null = 执行器用默认值。计划图可带 calendar_reminder_minutes */
+    val calendarReminderMinutes: Long? = null,
 ) {
     val batchId: String get() = "deployment:$version:$planId"
 
@@ -88,6 +98,7 @@ data class DeploymentSpec(
         return DeploymentForm(
             title, start.toLocalDate().toString(), zoneId, start.format(ClockFormat),
             local(endAt).format(ClockFormat), local(reminderAt).format(ClockFormat), calendarId,
+            calendarReminderMinutes,
         )
     }
 

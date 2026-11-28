@@ -39,6 +39,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.suibian.app.background.NotificationHelper
 import com.suibian.app.data.db.ActionLogEntity
 import com.suibian.app.executor.ActionType
+import com.suibian.app.executor.DEFAULT_CALENDAR_REMINDER_MINUTES
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -158,6 +159,10 @@ fun DeploymentScreen(state: DeploymentEditor, viewModel: DeploymentViewModel) {
                     Text("${shownForm.date} ${shownForm.start}–${shownForm.end} · ${shownForm.zone}")
                     if (review.only != ActionType.ALARM_SET) {
                         Text(if (selectedCalendar == null) "日历未选定，日历动作将标为未执行" else "写入一条日历事件 · ${selectedCalendar.name}")
+                         if (selectedCalendar != null) {
+                             val minutes = review.spec.calendarReminderMinutes ?: DEFAULT_CALENDAR_REMINDER_MINUTES
+                             Text(if (minutes == 0L) "日历提醒 · 开始时" else "日历提醒 · 开始前 ${minutes} 分钟")
+                         }
                     }
                     if (review.calendarAbsenceConfirmed) Text("请先在系统日历检查是否还有这条行程。确认没有后再重新写入。")
                     if (review.only != ActionType.CALENDAR_WRITE) Text("出门提醒 ${shownForm.reminder}")

@@ -33,7 +33,11 @@ object NotificationHelper {
                 CHANNEL_DEPART,
                 "该出门了",
                 NotificationManager.IMPORTANCE_HIGH,
-            ).apply { description = "按出发时刻计算的出门提醒" },
+            ).apply {
+                description = "按出发时刻计算的出门提醒"
+                // 出门提醒是强打断：默认单次短震不够，改成三段递进长震（用户在设置里改过振动则以用户为准）
+                vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 800)
+            },
         )
     }
 

@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
@@ -35,6 +37,8 @@ class DeploymentViewModel @Inject constructor(private val deployment: PlanDeploy
             form = DeploymentForm(
                 title = summary.title.orEmpty(), date = summary.date.orEmpty(), zone = ZoneId.systemDefault().id,
                 start = "", end = "", reminder = LocalTime.ofSecondOfDay(trialDeparture * 60L).toString(),
+                calendarReminderMinutes = (plan.graph["calendar_reminder_minutes"] as? JsonPrimitive)
+                    ?.longOrNull?.takeIf { it in 0..Int.MAX_VALUE.toLong() },
             ),
             busy = true,
         )
